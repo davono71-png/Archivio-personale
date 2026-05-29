@@ -16,6 +16,40 @@ CREATE TABLE IF NOT EXISTS processed_items (
 );
 CREATE INDEX IF NOT EXISTS idx_processed_service_item
     ON processed_items(service, item_id);
+
+CREATE TABLE IF NOT EXISTS email_messages (
+    email_id TEXT PRIMARY KEY,
+    rule_name TEXT NOT NULL,
+    gmail_query TEXT NOT NULL,
+    status TEXT NOT NULL,
+    processed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS drive_files (
+    file_id TEXT PRIMARY KEY,
+    source_email_id TEXT,
+    original_name TEXT,
+    current_name TEXT,
+    category TEXT,
+    status TEXT NOT NULL,
+    drive_folder_id TEXT,
+    saved_at TEXT NOT NULL DEFAULT (datetime('now')),
+    processed_at TEXT,
+    FOREIGN KEY (source_email_id) REFERENCES email_messages(email_id)
+);
+
+CREATE TABLE IF NOT EXISTS file_classifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    original_name TEXT,
+    new_name TEXT,
+    status TEXT NOT NULL,
+    confidence REAL,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (file_id) REFERENCES drive_files(file_id)
+);
 """
 
 
@@ -54,6 +88,84 @@ class ProcessedStore:
                 VALUES (?, ?, ?, ?)
                 """,
                 (service, item_id, rule_name, action),
+            )
+
+    def record_email(self, email_id: str, rule_name: str, gmail_query: str, status: str) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO email_messages(email_id, rule_name, gmail_query, status, processed_at)
+                VALUES (?, ?, ?, ?, datetime('now'))
+                ON CONFLICT(email_id) DO UPDATE SET
+                    rule_name = excluded.rule_name,
+                    gmail_query = excluded.gmail_query,
+                    status = excluded.status,
+                    processed_at = excluded.processed_at
+                """,
+                (email_id, rule_name, gmail_query, status),
+            )
+
+    def record_drive_file(
+        self,
+        file_id: str,
+        original_name: str | None,
+        current_name: str | None,
+        status: str,
+        drive_folder_id: str | None = None,
+        source_email_id: str | None = None,
+        category: str | None = None,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO drive_files(
+                    file_id,
+                    source_email_id,
+                    original_name,
+                    current_name,
+                    category,
+                    status,
+                    drive_folder_id,
+                    processed_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                ON CONFLICT(file_id) DO UPDATE SET
+                    source_email_id = COALESCE(excluded.source_email_id, drive_files.source_email_id),
+                    original_name = COALESCE(excluded.original_name, drive_files.original_name),
+                    current_name = excluded.current_name,
+                    category = COALESCE(excluded.category, drive_files.category),
+                    status = excluded.status,
+                    drive_folder_id = COALESCE(excluded.drive_folder_id, drive_files.drive_folder_id),
+                    processed_at = excluded.processed_at
+                """,
+                (file_id, source_email_id, original_name, current_name, category, status, drive_folder_id),
+            )
+
+    def record_classification(
+        self,
+        file_id: str,
+        category: str,
+        status: str,
+        original_name: str | None = None,
+        new_name: str | None = None,
+        confidence: float | None = None,
+        notes: str | None = None,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO file_classifications(
+                    file_id,
+                    category,
+                    original_name,
+                    new_name,
+                    status,
+                    confidence,
+                    notes
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (file_id, category, original_name, new_name, status, confidence, notes),
             )
 
     def close(self) -> None:

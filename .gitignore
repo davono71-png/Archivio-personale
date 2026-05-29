@@ -11,3 +11,7 @@ build/
 *.sqlite3
 token.json
 credentials.json
+config/credentials.json
+database/*.sqlite3
+database/token.json
+.env

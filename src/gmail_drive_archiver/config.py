@@ -33,20 +33,48 @@ class DriveRule:
 class ArchiveConfig:
     gmail: list[GmailRule] = field(default_factory=list)
     drive: list[DriveRule] = field(default_factory=list)
+    categories: list[str] = field(default_factory=list)
 
 
 def load_config(path: Path) -> ArchiveConfig:
     """Load and validate archiving rules from a YAML file."""
 
-    with path.open("r", encoding="utf-8") as handle:
-        raw = yaml.safe_load(handle) or {}
-
-    if not isinstance(raw, dict):
-        raise ConfigError("Il file YAML deve contenere una mappa al livello principale.")
+    raw = _load_yaml_map(path)
 
     return ArchiveConfig(
         gmail=[_gmail_rule(item) for item in _sequence(raw.get("gmail", []), "gmail")],
-        drive=[_drive_rule(item) for item in _sequence(raw.get("drive", []), "drive")],
+        drive=[_drive_rule(item) for item in _drive_rules(raw.get("drive", []))],
+        categories=_categories(raw.get("categories", [])),
+    )
+
+
+def load_split_config(
+    gmail_rules_path: Path | None,
+    drive_config_path: Path | None,
+    categories_path: Path | None,
+) -> ArchiveConfig:
+    """Load the repository-style split YAML configuration."""
+
+    gmail_rules: list[GmailRule] = []
+    drive_rules: list[DriveRule] = []
+    categories: list[str] = []
+
+    if gmail_rules_path:
+        raw_gmail = _load_yaml_map(gmail_rules_path)
+        gmail_rules = [_gmail_rule(item) for item in _sequence(raw_gmail.get("gmail", []), "gmail")]
+
+    if drive_config_path:
+        raw_drive = _load_yaml_map(drive_config_path)
+        drive_rules = [_drive_rule(item) for item in _drive_rules(raw_drive.get("drive", []))]
+
+    if categories_path:
+        raw_categories = _load_yaml_map(categories_path)
+        categories = _categories(raw_categories.get("categories", []))
+
+    return ArchiveConfig(
+        gmail=gmail_rules,
+        drive=drive_rules,
+        categories=categories,
     )
 
 
@@ -59,6 +87,35 @@ def _sequence(value: Any, key: str) -> list[dict[str, Any]]:
         if not isinstance(item, dict):
             raise ConfigError(f"'{key}[{index}]' deve essere una mappa.")
     return value
+
+
+def _drive_rules(value: Any) -> list[dict[str, Any]]:
+    if isinstance(value, dict):
+        return _sequence(value.get("rules", []), "drive.rules")
+    return _sequence(value, "drive")
+
+
+def _categories(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigError("'categories' deve essere una lista.")
+
+    categories: list[str] = []
+    for index, item in enumerate(value, start=1):
+        if not isinstance(item, str) or not item.strip():
+            raise ConfigError(f"'categories[{index}]' deve essere una stringa non vuota.")
+        categories.append(item.strip())
+    return categories
+
+
+def _load_yaml_map(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+
+    if not isinstance(raw, dict):
+        raise ConfigError("Il file YAML deve contenere una mappa al livello principale.")
+    return raw
 
 
 def _gmail_rule(raw: dict[str, Any]) -> GmailRule:

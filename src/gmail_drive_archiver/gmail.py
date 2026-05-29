@@ -46,6 +46,7 @@ class GmailArchiver:
                     body=body,
                 ).execute()
                 self.store.mark_processed("gmail", message_id, rule.name, "archive")
+                self.store.record_email(message_id, rule.name, rule.query, "archived")
 
             detail = f"query={rule.query}"
             if rule.label:

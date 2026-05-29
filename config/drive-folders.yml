@@ -1,0 +1,22 @@
+drive:
+  inbox_folder_id: "INSERISCI_ID_CARTELLA_DA_CLASSIFICARE"
+  archive_root_folder_id: "INSERISCI_ID_CARTELLA_ARCHIVIO"
+  category_folders:
+    Banca: "INSERISCI_ID_CARTELLA_BANCA"
+    Salute: "INSERISCI_ID_CARTELLA_SALUTE"
+    Assicurazioni: "INSERISCI_ID_CARTELLA_ASSICURAZIONI"
+    Casa: "INSERISCI_ID_CARTELLA_CASA"
+    Auto: "INSERISCI_ID_CARTELLA_AUTO"
+    Fisco: "INSERISCI_ID_CARTELLA_FISCO"
+    Garanzie: "INSERISCI_ID_CARTELLA_GARANZIE"
+    Sport: "INSERISCI_ID_CARTELLA_SPORT"
+    Tecnologia: "INSERISCI_ID_CARTELLA_TECNOLOGIA"
+    Viaggi: "INSERISCI_ID_CARTELLA_VIAGGI"
+    Varie: "INSERISCI_ID_CARTELLA_VARIE"
+
+  rules:
+    - name: pdf-vecchi
+      query: "mimeType='application/pdf' and modifiedTime < '2024-01-01T00:00:00' and trashed = false"
+      target_folder_id: "INSERISCI_ID_CARTELLA_ARCHIVIO"
+      remove_from_current_parents: true
+      max_items: 50

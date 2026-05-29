@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .config import ConfigError, load_config
+from .config import ConfigError, load_config, load_split_config
 from .database import ProcessedStore
 from .drive import DriveArchiver
 from .gmail import GmailArchiver
@@ -15,6 +15,10 @@ from .models import ActionResult
 DEFAULT_CONFIG_DIR = Path.home() / ".config" / "gmail-drive-archiver"
 DEFAULT_TOKEN = DEFAULT_CONFIG_DIR / "token.json"
 DEFAULT_DB = DEFAULT_CONFIG_DIR / "processed.sqlite3"
+DEFAULT_REPO_CONFIG_DIR = Path("config")
+DEFAULT_GMAIL_RULES = DEFAULT_REPO_CONFIG_DIR / "gmail-rules.yml"
+DEFAULT_DRIVE_CONFIG = DEFAULT_REPO_CONFIG_DIR / "drive-folders.yml"
+DEFAULT_CATEGORIES = DEFAULT_REPO_CONFIG_DIR / "categories.yml"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -29,7 +33,29 @@ def build_parser() -> argparse.ArgumentParser:
     init_db.set_defaults(func=run_init_db)
 
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
-    sync.add_argument("--rules", type=Path, required=True, help="file YAML con le regole")
+    sync.add_argument(
+        "--rules",
+        type=Path,
+        help="file YAML unico con regole Gmail/Drive; se presente sostituisce i file config separati",
+    )
+    sync.add_argument(
+        "--gmail-rules",
+        type=Path,
+        default=DEFAULT_GMAIL_RULES,
+        help=f"regole Gmail YAML (default: {DEFAULT_GMAIL_RULES})",
+    )
+    sync.add_argument(
+        "--drive-config",
+        type=Path,
+        default=DEFAULT_DRIVE_CONFIG,
+        help=f"config Drive YAML (default: {DEFAULT_DRIVE_CONFIG})",
+    )
+    sync.add_argument(
+        "--categories",
+        type=Path,
+        default=DEFAULT_CATEGORIES,
+        help=f"categorie YAML (default: {DEFAULT_CATEGORIES})",
+    )
     sync.add_argument(
         "--credentials",
         type=Path,
@@ -59,7 +85,11 @@ def run_init_db(args: argparse.Namespace) -> int:
 
 def run_sync(args: argparse.Namespace) -> int:
     try:
-        config = load_config(args.rules)
+        config = (
+            load_config(args.rules)
+            if args.rules
+            else load_split_config(args.gmail_rules, args.drive_config, args.categories)
+        )
     except (OSError, ConfigError) as exc:
         print(f"Errore configurazione: {exc}", file=sys.stderr)
         return 2

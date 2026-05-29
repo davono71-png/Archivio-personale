@@ -42,6 +42,13 @@ class DriveArchiver:
                     fields="id, parents",
                 ).execute()
                 self.store.mark_processed("drive", file_id, rule.name, "move")
+                self.store.record_drive_file(
+                    file_id=file_id,
+                    original_name=file.get("name"),
+                    current_name=file.get("name"),
+                    status="moved",
+                    drive_folder_id=rule.target_folder_id,
+                )
 
             detail = f"name={file.get('name', '')}, target_folder_id={rule.target_folder_id}"
             results.append(
