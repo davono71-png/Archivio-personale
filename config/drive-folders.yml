@@ -2,21 +2,21 @@ drive:
   inbox_folder_id: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
   archive_root_folder_id: "1K2Zitlcz7JR6Z0i77WPXAjr-2wY5hS7e"
   category_folders:
-    Banca: "INSERISCI_ID_CARTELLA_BANCA"
-    Salute: "INSERISCI_ID_CARTELLA_SALUTE"
-    Assicurazioni: "INSERISCI_ID_CARTELLA_ASSICURAZIONI"
-    Casa: "INSERISCI_ID_CARTELLA_CASA"
-    Auto: "INSERISCI_ID_CARTELLA_AUTO"
-    Fisco: "INSERISCI_ID_CARTELLA_FISCO"
-    Garanzie: "INSERISCI_ID_CARTELLA_GARANZIE"
-    Sport: "INSERISCI_ID_CARTELLA_SPORT"
-    Tecnologia: "INSERISCI_ID_CARTELLA_TECNOLOGIA"
-    Viaggi: "INSERISCI_ID_CARTELLA_VIAGGI"
-    Varie: "INSERISCI_ID_CARTELLA_VARIE"
+    Banca: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Salute: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Assicurazioni: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Casa: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbP"
+    Auto: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Fisco: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Garanzie: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Sport: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Tecnologia: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Viaggi: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+    Varie: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
 
   rules:
     - name: pdf-vecchi
       query: "mimeType='application/pdf' and modifiedTime < '2024-01-01T00:00:00' and trashed = false"
-      target_folder_id: "INSERISCI_ID_CARTELLA_ARCHIVIO"
+      target_folder_id: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
       remove_from_current_parents: true
       max_items: 50
