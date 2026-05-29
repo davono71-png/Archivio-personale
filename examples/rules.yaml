@@ -1,0 +1,20 @@
+# Regole Gmail: la query usa la sintassi di ricerca di Gmail.
+gmail:
+  - name: newsletter-vecchie
+    query: "category:promotions older_than:30d"
+    label: "Archivio/Newsletter"
+    mark_read: true
+    max_items: 100
+
+  - name: notifiche-social-vecchie
+    query: "category:social older_than:60d"
+    label: "Archivio/Social"
+    mark_read: true
+
+# Regole Drive: la query usa la sintassi files.list della Drive API.
+drive:
+  - name: pdf-vecchi
+    query: "mimeType='application/pdf' and modifiedTime < '2024-01-01T00:00:00' and trashed = false"
+    target_folder_id: "INSERISCI_ID_CARTELLA_ARCHIVIO_DRIVE"
+    remove_from_current_parents: true
+    max_items: 50
