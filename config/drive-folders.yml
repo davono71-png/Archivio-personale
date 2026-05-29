@@ -1,6 +1,6 @@
 drive:
-  inbox_folder_id: "INSERISCI_ID_CARTELLA_DA_CLASSIFICARE"
-  archive_root_folder_id: "INSERISCI_ID_CARTELLA_ARCHIVIO"
+  inbox_folder_id: "1ty1oJt9qXTHSgibuO48Okg8Uh-esZbPr"
+  archive_root_folder_id: "1K2Zitlcz7JR6Z0i77WPXAjr-2wY5hS7e"
   category_folders:
     Banca: "INSERISCI_ID_CARTELLA_BANCA"
     Salute: "INSERISCI_ID_CARTELLA_SALUTE"
