@@ -162,6 +162,8 @@ categories:
   - Sport
   - Tecnologia
   - Viaggi
+  - Lavoro
+  - Alimentazione
   - Varie
 ```
 
@@ -188,6 +190,8 @@ drive:
   archive_root_folder_id: "INSERISCI_ID_CARTELLA_ARCHIVIO"
   category_folders:
     Banca: "INSERISCI_ID_CARTELLA_BANCA"
+    Lavoro: "INSERISCI_ID_CARTELLA_LAVORO"
+    Alimentazione: "INSERISCI_ID_CARTELLA_ALIMENTAZIONE"
     Varie: "INSERISCI_ID_CARTELLA_VARIE"
   rules:
     - name: pdf-vecchi
