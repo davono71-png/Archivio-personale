@@ -44,6 +44,23 @@ class TextExtractionTest(unittest.TestCase):
 
             self.assertEqual(results[0].status, "requires_ocr")
 
+    def test_finds_files_saved_with_download_inventory_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            files_dir = root / "downloads"
+            output_dir = root / "extracted"
+            files_dir.mkdir()
+            (files_dir / "timbrature_Tutti_2026_05-file123.csv").write_text("ore,8", encoding="utf-8")
+
+            results = extract_inventory_text(
+                [InventoryItem(id="file123", name="timbrature_Tutti_2026_05.csv", mime_type="text/csv")],
+                files_dir,
+                output_dir,
+            )
+
+            self.assertEqual(results[0].status, "extracted")
+            self.assertIn("ore,8", Path(results[0].output_path).read_text(encoding="utf-8"))
+
     def test_writes_extraction_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             report = Path(tmpdir) / "report.csv"

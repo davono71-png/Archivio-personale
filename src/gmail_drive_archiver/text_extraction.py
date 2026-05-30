@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree
 
+from .drive_download import download_filename
 from .inventory_analysis import InventoryItem
 from .ocr_plan import OCR_EXTENSIONS, STRUCTURED_EXTENSIONS, TECHNICAL_EXTENSIONS, TEXT_EXTENSIONS
 
@@ -36,7 +37,7 @@ def extract_inventory_text(
     results: list[ExtractedText] = []
 
     for item in items[:limit]:
-        source = files_dir / item.name
+        source = _local_source_path(item, files_dir)
         if not source.exists():
             results.append(
                 ExtractedText(
@@ -53,6 +54,13 @@ def extract_inventory_text(
         results.append(result)
 
     return results
+
+
+def _local_source_path(item: InventoryItem, files_dir: Path) -> Path:
+    original = files_dir / item.name
+    if original.exists():
+        return original
+    return files_dir / download_filename(item)
 
 
 def extract_text_file(item: InventoryItem, source: Path, output_path: Path) -> ExtractedText:
