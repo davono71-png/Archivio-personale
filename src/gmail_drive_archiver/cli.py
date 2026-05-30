@@ -13,6 +13,7 @@ from .gmail import GmailArchiver
 from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
 from .models import ActionResult
+from .ocr_plan import OcrPlan, build_ocr_plan
 
 
 DEFAULT_CONFIG_DIR = Path.home() / ".config" / "gmail-drive-archiver"
@@ -92,6 +93,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="formato output (default: table)",
     )
     analyze_inventory_command.set_defaults(func=run_analyze_inventory)
+
+    ocr_plan_command = subcommands.add_parser(
+        "ocr-plan",
+        help="pianifica quali file dell'inventario richiedono OCR o estrazione testo",
+    )
+    ocr_plan_command.add_argument(
+        "--input",
+        type=Path,
+        default=Path("database") / "inventory-da-classificare.csv",
+        help="CSV generato da inventory",
+    )
+    ocr_plan_command.add_argument("--output", type=Path, help="percorso file JSON di output")
+    ocr_plan_command.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="formato output (default: table)",
+    )
+    ocr_plan_command.set_defaults(func=run_ocr_plan)
 
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
@@ -207,6 +227,18 @@ def run_analyze_inventory(args: argparse.Namespace) -> int:
 
     analysis = analyze_inventory(items, config.categories)
     _write_inventory_analysis(analysis, args.format, args.output)
+    return 0
+
+
+def run_ocr_plan(args: argparse.Namespace) -> int:
+    try:
+        items = load_inventory_csv(args.input)
+    except OSError as exc:
+        print(f"Errore piano OCR: {exc}", file=sys.stderr)
+        return 2
+
+    plan = build_ocr_plan(items)
+    _write_ocr_plan(plan, args.format, args.output)
     return 0
 
 
@@ -350,6 +382,44 @@ def _print_inventory_analysis(analysis: InventoryAnalysis) -> None:
         print("Esempi non classificati:")
         for example in analysis.unclassified_examples:
             print(f"  - {example}")
+
+
+def _write_ocr_plan(plan: OcrPlan, output_format: str, output_path: Path | None) -> None:
+    if output_format == "json":
+        payload = json.dumps(_ocr_plan_payload(plan), ensure_ascii=False, indent=2)
+        _write_or_print(payload, output_path)
+    else:
+        _print_ocr_plan(plan)
+
+
+def _ocr_plan_payload(plan: OcrPlan) -> dict:
+    return {
+        "total_items": plan.total_items,
+        "buckets": [
+            {
+                "key": bucket.key,
+                "label": bucket.label,
+                "count": bucket.count,
+                "examples": bucket.examples,
+            }
+            for bucket in plan.buckets
+        ],
+    }
+
+
+def _print_ocr_plan(plan: OcrPlan) -> None:
+    print(f"Totale file: {plan.total_items}")
+    print()
+
+    if not plan.buckets:
+        print("Nessun file nell'inventario.")
+        return
+
+    for bucket in plan.buckets:
+        print(f"{bucket.label}: {bucket.count}")
+        for example in bucket.examples:
+            print(f"  - {example}")
+        print()
 
 
 def main(argv: list[str] | None = None) -> int:

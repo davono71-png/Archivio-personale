@@ -5,8 +5,9 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from gmail_drive_archiver.cli import _write_inventory, _write_inventory_analysis
+from gmail_drive_archiver.cli import _write_inventory, _write_inventory_analysis, _write_ocr_plan
 from gmail_drive_archiver.inventory_analysis import analyze_inventory, InventoryItem
+from gmail_drive_archiver.ocr_plan import build_ocr_plan
 
 
 class InventoryOutputTest(unittest.TestCase):
@@ -63,6 +64,21 @@ class InventoryOutputTest(unittest.TestCase):
         self.assertIn("Totale file: 2", output.getvalue())
         self.assertIn("Banca", output.getvalue())
         self.assertIn("Salute", output.getvalue())
+
+    def test_prints_ocr_plan(self) -> None:
+        plan = build_ocr_plan(
+            [
+                InventoryItem(id="file-1", name="scansione.pdf", mime_type="application/pdf"),
+                InventoryItem(id="file-2", name="contratto.docx", mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            ]
+        )
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            _write_ocr_plan(plan, "table", None)
+
+        self.assertIn("Candidati OCR: 1", output.getvalue())
+        self.assertIn("Documenti testuali: 1", output.getvalue())
 
 
 if __name__ == "__main__":

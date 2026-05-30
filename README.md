@@ -293,6 +293,32 @@ gmail-drive-archiver analyze-inventory \
 estensioni e parole chiave nei nomi file. Serve a capire il contenuto della cartella prima di
 decidere regole, OCR e AnythingLLM.
 
+Per preparare la fase OCR senza installare ancora strumenti pesanti:
+
+```bash
+gmail-drive-archiver ocr-plan \
+  --input database/inventory-da-classificare.csv
+```
+
+Il comando divide l'inventario in:
+
+- **Candidati OCR**: PDF e immagini;
+- **Documenti testuali**: DOC/DOCX/ODT/TXT da cui estrarre testo;
+- **File strutturati**: CSV/XLS/XLSX;
+- **File tecnici / calendario / web**: XML/HTML/ICS;
+- **Da valutare manualmente**: estensioni o MIME type non riconosciuti.
+
+Per salvare il piano in JSON:
+
+```bash
+gmail-drive-archiver ocr-plan \
+  --input database/inventory-da-classificare.csv \
+  --format json \
+  --output database/ocr-plan.json
+```
+
+`ocr-plan` e read-only: non scarica file, non esegue OCR e non modifica Drive.
+
 ## Database applicativo
 
 SQLite crea automaticamente:
