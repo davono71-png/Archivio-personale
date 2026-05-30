@@ -270,6 +270,22 @@ gmail-drive-archiver inventory \
 Il comando `inventory` e read-only: legge i metadati dei file Drive ma non modifica cartelle,
 nomi, label o database.
 
+Per scaricare localmente un piccolo lotto di file dell'inventario:
+
+```bash
+gmail-drive-archiver download-inventory \
+  --input database/inventory-da-classificare.csv \
+  --credentials config/credentials.json \
+  --token database/token.json \
+  --output-dir database/downloads \
+  --report database/download-report.csv \
+  --limit 20
+```
+
+Il comando `download-inventory` non modifica Drive: scarica copie locali in
+`database/downloads`. I file Google Docs/Sheets/Slides vengono esportati rispettivamente come
+DOCX/XLSX/PPTX quando possibile. Senza `--overwrite`, i file gia presenti vengono saltati.
+
 Per analizzare il CSV e ottenere un primo riassunto per tipi file, estensioni e categorie
 probabili dai nomi:
 

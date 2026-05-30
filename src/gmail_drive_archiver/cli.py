@@ -9,6 +9,7 @@ from pathlib import Path
 from .config import ConfigError, load_config, load_split_config
 from .database import ProcessedStore
 from .drive import DriveArchiver, DriveInventory
+from .drive_download import DownloadResult, download_inventory_files, write_download_report
 from .gmail import GmailArchiver
 from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
@@ -69,6 +70,48 @@ def build_parser() -> argparse.ArgumentParser:
         help="formato output (default: table)",
     )
     inventory.set_defaults(func=run_inventory)
+
+    download_inventory = subcommands.add_parser(
+        "download-inventory",
+        help="scarica localmente file Drive elencati in un CSV inventory",
+    )
+    download_inventory.add_argument(
+        "--input",
+        type=Path,
+        default=Path("database") / "inventory-da-classificare.csv",
+        help="CSV generato da inventory",
+    )
+    download_inventory.add_argument(
+        "--credentials",
+        type=Path,
+        required=True,
+        help="client OAuth JSON scaricato da Google Cloud",
+    )
+    download_inventory.add_argument(
+        "--token",
+        type=Path,
+        default=DEFAULT_TOKEN,
+        help=f"token OAuth locale (default: {DEFAULT_TOKEN})",
+    )
+    download_inventory.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("database") / "downloads",
+        help="cartella locale dove salvare i file",
+    )
+    download_inventory.add_argument(
+        "--report",
+        type=Path,
+        default=Path("database") / "download-report.csv",
+        help="CSV con esito download per file",
+    )
+    download_inventory.add_argument("--limit", type=int, help="limita il numero di righe inventory da scaricare")
+    download_inventory.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="riscarica anche i file gia presenti localmente",
+    )
+    download_inventory.set_defaults(func=run_download_inventory)
 
     analyze_inventory_command = subcommands.add_parser(
         "analyze-inventory",
@@ -246,6 +289,27 @@ def run_inventory(args: argparse.Namespace) -> int:
     drive_service = build_google_service("drive", "v3", credentials)
     files = DriveInventory(drive_service).list_folder(folder_id, args.max_items)
     _write_inventory(files, args.format, args.output)
+    return 0
+
+
+def run_download_inventory(args: argparse.Namespace) -> int:
+    try:
+        items = load_inventory_csv(args.input)
+        credentials = authenticate(args.credentials, args.token)
+        drive_service = build_google_service("drive", "v3", credentials)
+        results = download_inventory_files(
+            drive_service,
+            items,
+            args.output_dir,
+            limit=args.limit,
+            skip_existing=not args.overwrite,
+        )
+        write_download_report(results, args.report)
+    except OSError as exc:
+        print(f"Errore download inventario: {exc}", file=sys.stderr)
+        return 2
+
+    _print_download_results(results, args.report)
     return 0
 
 
@@ -484,6 +548,27 @@ def _print_extraction_results(results: list[ExtractedText], report_path: Path) -
     if missing_or_pending:
         print("Esempi da completare:")
         for result in missing_or_pending[:10]:
+            detail = f" ({result.detail})" if result.detail else ""
+            print(f"  - {result.name}: {result.status}{detail}")
+
+
+def _print_download_results(results: list[DownloadResult], report_path: Path) -> None:
+    counts: dict[str, int] = {}
+    for result in results:
+        counts[result.status] = counts.get(result.status, 0) + 1
+
+    print(f"Report download: {report_path}")
+    for status, count in sorted(counts.items()):
+        print(f"  {status}: {count}")
+
+    incomplete = [
+        result
+        for result in results
+        if result.status in {"error", "unsupported_google_file"}
+    ]
+    if incomplete:
+        print("Esempi non scaricati:")
+        for result in incomplete[:10]:
             detail = f" ({result.detail})" if result.detail else ""
             print(f"  - {result.name}: {result.status}{detail}")
 
