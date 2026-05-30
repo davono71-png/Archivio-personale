@@ -55,6 +55,7 @@ Dettagli: `docs/architecture.md`.
 
 - **Docker Compose** con n8n e PostgreSQL per lo stato interno di n8n.
 - **n8n/** come cartella per gli export dei workflow.
+- **AnythingLLM** opzionale via profilo Docker `ai`.
 - **config/** con categorie, regole Gmail e mapping cartelle Drive.
 - **database/** per SQLite locale della CLI e note operative.
 - **scripts/** con wrapper eseguibile per l'archiver.
@@ -85,6 +86,7 @@ N8N_ENCRYPTION_KEY=usa_una_stringa_lunga_random
 N8N_HOST=localhost
 N8N_PROTOCOL=http
 N8N_PORT=5678
+ANYTHINGLLM_PORT=3001
 TZ=Europe/Rome
 ```
 
@@ -99,6 +101,22 @@ Apri n8n su:
 ```text
 http://localhost:5678
 ```
+
+## Avvio AnythingLLM
+
+AnythingLLM e configurato come servizio opzionale nel profilo Docker `ai`.
+
+```bash
+docker compose --profile ai up -d anythingllm
+```
+
+Apri:
+
+```text
+http://localhost:3001
+```
+
+Lo storage locale resta in `anythingllm/storage/`, ignorato da Git.
 
 ## Installazione CLI Python
 

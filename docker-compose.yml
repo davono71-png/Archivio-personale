@@ -55,6 +55,22 @@ services:
     environment:
       TZ: ${TZ:-Europe/Rome}
 
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: personal-archive-anythingllm
+    profiles: ["ai"]
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    ports:
+      - "${ANYTHINGLLM_PORT:-3001}:3001"
+    environment:
+      STORAGE_DIR: /app/server/storage
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ./anythingllm/storage:/app/server/storage
+      - ./database/anythingllm-import:/workspace/anythingllm-import:ro
+
 volumes:
   n8n-data:
   postgres-data:
