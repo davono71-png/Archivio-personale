@@ -13,5 +13,7 @@ token.json
 credentials.json
 config/credentials.json
 database/*.sqlite3
+database/*.csv
+database/*.json
 database/token.json
 .env

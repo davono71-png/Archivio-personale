@@ -7,6 +7,12 @@ from .database import ProcessedStore
 from .models import ActionResult
 
 
+INVENTORY_FIELDS = (
+    "nextPageToken, "
+    "files(id, name, mimeType, parents, size, createdTime, modifiedTime, webViewLink)"
+)
+
+
 class DriveArchiver:
     def __init__(self, service, store: ProcessedStore) -> None:
         self.service = service
@@ -15,7 +21,7 @@ class DriveArchiver:
     def process_rule(self, rule: DriveRule, dry_run: bool = False) -> list[ActionResult]:
         results: list[ActionResult] = []
 
-        for file in self._iter_files(rule.query, rule.max_items):
+        for file in iter_drive_files(self.service, rule.query, rule.max_items):
             file_id = file["id"]
             if self.store.is_processed("drive", file_id, rule.name):
                 results.append(
@@ -64,30 +70,45 @@ class DriveArchiver:
 
         return results
 
-    def _iter_files(self, query: str, max_items: int | None) -> Iterator[dict]:
-        emitted = 0
-        page_token = None
 
-        while True:
-            page_size = min(1000, max_items - emitted) if max_items else 1000
-            response = (
-                self.service.files()
-                .list(
-                    q=query,
-                    spaces="drive",
-                    fields="nextPageToken, files(id, name, mimeType, parents, modifiedTime)",
-                    pageSize=page_size,
-                    pageToken=page_token,
-                )
-                .execute()
+class DriveInventory:
+    def __init__(self, service) -> None:
+        self.service = service
+
+    def list_folder(self, folder_id: str, max_items: int | None = None) -> list[dict]:
+        query = f"'{folder_id}' in parents and trashed = false"
+        return list(iter_drive_files(self.service, query, max_items, fields=INVENTORY_FIELDS))
+
+
+def iter_drive_files(
+    service,
+    query: str,
+    max_items: int | None,
+    fields: str = "nextPageToken, files(id, name, mimeType, parents, modifiedTime)",
+) -> Iterator[dict]:
+    emitted = 0
+    page_token = None
+
+    while True:
+        page_size = min(1000, max_items - emitted) if max_items else 1000
+        response = (
+            service.files()
+            .list(
+                q=query,
+                spaces="drive",
+                fields=fields,
+                pageSize=page_size,
+                pageToken=page_token,
             )
+            .execute()
+        )
 
-            for file in response.get("files", []):
-                yield file
-                emitted += 1
-                if max_items and emitted >= max_items:
-                    return
-
-            page_token = response.get("nextPageToken")
-            if not page_token:
+        for file in response.get("files", []):
+            yield file
+            emitted += 1
+            if max_items and emitted >= max_items:
                 return
+
+        page_token = response.get("nextPageToken")
+        if not page_token:
+            return

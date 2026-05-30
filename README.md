@@ -239,6 +239,33 @@ sh scripts/run-archiver.sh --dry-run
 
 La CLI supporta ancora `--rules examples/rules.yaml` per un singolo YAML combinato.
 
+### Inventario sicuro di "Da Classificare"
+
+Per vedere cosa c'e nella cartella `drive.inbox_folder_id` senza spostare nulla:
+
+```bash
+gmail-drive-archiver inventory \
+  --credentials config/credentials.json \
+  --token database/token.json \
+  --drive-config config/drive-folders.yml \
+  --max-items 100
+```
+
+Per esportare un CSV da usare nella fase OCR/AI/classificazione:
+
+```bash
+gmail-drive-archiver inventory \
+  --credentials config/credentials.json \
+  --token database/token.json \
+  --drive-config config/drive-folders.yml \
+  --max-items 500 \
+  --format csv \
+  --output database/inventory-da-classificare.csv
+```
+
+Il comando `inventory` e read-only: legge i metadati dei file Drive ma non modifica cartelle,
+nomi, label o database.
+
 ## Database applicativo
 
 SQLite crea automaticamente:

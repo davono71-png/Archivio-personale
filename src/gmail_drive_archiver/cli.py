@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import json
 import sys
 from pathlib import Path
 
 from .config import ConfigError, load_config, load_split_config
 from .database import ProcessedStore
-from .drive import DriveArchiver
+from .drive import DriveArchiver, DriveInventory
 from .gmail import GmailArchiver
 from .google_auth import authenticate, build_google_service
 from .models import ActionResult
@@ -31,6 +33,39 @@ def build_parser() -> argparse.ArgumentParser:
     init_db = subcommands.add_parser("init-db", help="inizializza il database SQLite")
     init_db.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"percorso DB SQLite (default: {DEFAULT_DB})")
     init_db.set_defaults(func=run_init_db)
+
+    inventory = subcommands.add_parser("inventory", help="elenca i file Drive da classificare senza spostarli")
+    inventory.add_argument(
+        "--drive-config",
+        type=Path,
+        default=DEFAULT_DRIVE_CONFIG,
+        help=f"config Drive YAML (default: {DEFAULT_DRIVE_CONFIG})",
+    )
+    inventory.add_argument(
+        "--folder-id",
+        help="ID cartella Drive da inventariare; default: drive.inbox_folder_id",
+    )
+    inventory.add_argument(
+        "--credentials",
+        type=Path,
+        required=True,
+        help="client OAuth JSON scaricato da Google Cloud",
+    )
+    inventory.add_argument(
+        "--token",
+        type=Path,
+        default=DEFAULT_TOKEN,
+        help=f"token OAuth locale (default: {DEFAULT_TOKEN})",
+    )
+    inventory.add_argument("--max-items", type=int, default=100, help="numero massimo di file da elencare")
+    inventory.add_argument("--output", type=Path, help="percorso file di output CSV/JSON")
+    inventory.add_argument(
+        "--format",
+        choices=("table", "csv", "json"),
+        default="table",
+        help="formato output (default: table)",
+    )
+    inventory.set_defaults(func=run_inventory)
 
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
@@ -114,6 +149,28 @@ def run_sync(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_inventory(args: argparse.Namespace) -> int:
+    try:
+        config = load_split_config(None, args.drive_config, None)
+    except (OSError, ConfigError) as exc:
+        print(f"Errore configurazione: {exc}", file=sys.stderr)
+        return 2
+
+    folder_id = args.folder_id or config.drive_settings.inbox_folder_id
+    if not folder_id:
+        print(
+            "Errore configurazione: specifica --folder-id oppure drive.inbox_folder_id.",
+            file=sys.stderr,
+        )
+        return 2
+
+    credentials = authenticate(args.credentials, args.token)
+    drive_service = build_google_service("drive", "v3", credentials)
+    files = DriveInventory(drive_service).list_folder(folder_id, args.max_items)
+    _write_inventory(files, args.format, args.output)
+    return 0
+
+
 def _print_results(results: list[ActionResult], dry_run: bool) -> None:
     prefix = "[DRY-RUN] " if dry_run else ""
     if not results:
@@ -134,6 +191,67 @@ def _print_results(results: list[ActionResult], dry_run: bool) -> None:
         )
 
     print(f"{prefix}Totale: {processed} azioni, {skipped} gia processati.")
+
+
+def _write_inventory(files: list[dict], output_format: str, output_path: Path | None) -> None:
+    rows = [_inventory_row(file) for file in files]
+
+    if output_format == "json":
+        payload = json.dumps(rows, ensure_ascii=False, indent=2)
+        _write_or_print(payload, output_path)
+    elif output_format == "csv":
+        if output_path:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with output_path.open("w", newline="", encoding="utf-8") as handle:
+                _write_csv(rows, handle)
+            print(f"Inventario scritto: {output_path}")
+        else:
+            _write_csv(rows, sys.stdout)
+    else:
+        _print_inventory_table(rows)
+
+    summary_stream = sys.stderr if output_path is None and output_format in ("csv", "json") else sys.stdout
+    print(f"Totale file inventariati: {len(rows)}", file=summary_stream)
+
+
+def _inventory_row(file: dict) -> dict[str, str]:
+    return {
+        "id": file.get("id", ""),
+        "name": file.get("name", ""),
+        "mime_type": file.get("mimeType", ""),
+        "size": file.get("size", ""),
+        "created_time": file.get("createdTime", ""),
+        "modified_time": file.get("modifiedTime", ""),
+        "web_view_link": file.get("webViewLink", ""),
+    }
+
+
+def _write_csv(rows: list[dict[str, str]], handle) -> None:  # type: ignore[no-untyped-def]
+    fieldnames = ["id", "name", "mime_type", "size", "created_time", "modified_time", "web_view_link"]
+    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(rows)
+
+
+def _write_or_print(payload: str, output_path: Path | None) -> None:
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(payload + "\n", encoding="utf-8")
+        print(f"Inventario scritto: {output_path}")
+    else:
+        print(payload)
+
+
+def _print_inventory_table(rows: list[dict[str, str]]) -> None:
+    if not rows:
+        print("Nessun file trovato.")
+        return
+
+    for index, row in enumerate(rows, start=1):
+        print(
+            f"{index:04d} {row['id']} "
+            f"name={row['name']} mime={row['mime_type']} modified={row['modified_time']}"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:

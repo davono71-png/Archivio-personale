@@ -30,10 +30,18 @@ class DriveRule:
 
 
 @dataclass(frozen=True)
+class DriveSettings:
+    inbox_folder_id: str | None = None
+    archive_root_folder_id: str | None = None
+    category_folders: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class ArchiveConfig:
     gmail: list[GmailRule] = field(default_factory=list)
     drive: list[DriveRule] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
+    drive_settings: DriveSettings = field(default_factory=DriveSettings)
 
 
 def load_config(path: Path) -> ArchiveConfig:
@@ -45,6 +53,7 @@ def load_config(path: Path) -> ArchiveConfig:
         gmail=[_gmail_rule(item) for item in _sequence(raw.get("gmail", []), "gmail")],
         drive=[_drive_rule(item) for item in _drive_rules(raw.get("drive", []))],
         categories=_categories(raw.get("categories", [])),
+        drive_settings=_drive_settings(raw.get("drive", {})),
     )
 
 
@@ -57,6 +66,7 @@ def load_split_config(
 
     gmail_rules: list[GmailRule] = []
     drive_rules: list[DriveRule] = []
+    drive_settings = DriveSettings()
     categories: list[str] = []
 
     if gmail_rules_path:
@@ -65,7 +75,9 @@ def load_split_config(
 
     if drive_config_path:
         raw_drive = _load_yaml_map(drive_config_path)
-        drive_rules = [_drive_rule(item) for item in _drive_rules(raw_drive.get("drive", []))]
+        drive_config = raw_drive.get("drive", [])
+        drive_rules = [_drive_rule(item) for item in _drive_rules(drive_config)]
+        drive_settings = _drive_settings(drive_config)
 
     if categories_path:
         raw_categories = _load_yaml_map(categories_path)
@@ -75,6 +87,7 @@ def load_split_config(
         gmail=gmail_rules,
         drive=drive_rules,
         categories=categories,
+        drive_settings=drive_settings,
     )
 
 
@@ -93,6 +106,33 @@ def _drive_rules(value: Any) -> list[dict[str, Any]]:
     if isinstance(value, dict):
         return _sequence(value.get("rules", []), "drive.rules")
     return _sequence(value, "drive")
+
+
+def _drive_settings(value: Any) -> DriveSettings:
+    if not isinstance(value, dict):
+        return DriveSettings()
+
+    return DriveSettings(
+        inbox_folder_id=_optional_str(value, "inbox_folder_id", "drive"),
+        archive_root_folder_id=_optional_str(value, "archive_root_folder_id", "drive"),
+        category_folders=_string_map(value.get("category_folders", {}), "drive.category_folders"),
+    )
+
+
+def _string_map(value: Any, key: str) -> dict[str, str]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ConfigError(f"'{key}' deve essere una mappa.")
+
+    result: dict[str, str] = {}
+    for item_key, item_value in value.items():
+        if not isinstance(item_key, str) or not item_key.strip():
+            raise ConfigError(f"'{key}' contiene una chiave non valida.")
+        if not isinstance(item_value, str) or not item_value.strip():
+            raise ConfigError(f"'{key}.{item_key}' deve essere una stringa non vuota.")
+        result[item_key.strip()] = item_value.strip()
+    return result
 
 
 def _categories(value: Any) -> list[str]:
