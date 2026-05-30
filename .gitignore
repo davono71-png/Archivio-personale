@@ -16,4 +16,6 @@ database/*.sqlite3
 database/*.csv
 database/*.json
 database/token.json
+database/downloads/
+database/extracted-text/
 .env

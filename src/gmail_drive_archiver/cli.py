@@ -14,6 +14,7 @@ from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
 from .models import ActionResult
 from .ocr_plan import OcrPlan, build_ocr_plan
+from .text_extraction import ExtractedText, extract_inventory_text, write_extraction_report
 
 
 DEFAULT_CONFIG_DIR = Path.home() / ".config" / "gmail-drive-archiver"
@@ -112,6 +113,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="formato output (default: table)",
     )
     ocr_plan_command.set_defaults(func=run_ocr_plan)
+
+    extract_text_command = subcommands.add_parser(
+        "extract-text",
+        help="estrae testo da file locali scaricati usando l'inventario",
+    )
+    extract_text_command.add_argument(
+        "--input",
+        type=Path,
+        default=Path("database") / "inventory-da-classificare.csv",
+        help="CSV generato da inventory",
+    )
+    extract_text_command.add_argument(
+        "--files-dir",
+        type=Path,
+        default=Path("database") / "downloads",
+        help="cartella locale che contiene i file da processare",
+    )
+    extract_text_command.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("database") / "extracted-text",
+        help="cartella dove salvare i .txt estratti",
+    )
+    extract_text_command.add_argument(
+        "--report",
+        type=Path,
+        default=Path("database") / "extract-text-report.csv",
+        help="CSV con esito estrazione per file",
+    )
+    extract_text_command.add_argument("--limit", type=int, help="limita il numero di righe inventario da processare")
+    extract_text_command.set_defaults(func=run_extract_text)
 
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
@@ -239,6 +271,19 @@ def run_ocr_plan(args: argparse.Namespace) -> int:
 
     plan = build_ocr_plan(items)
     _write_ocr_plan(plan, args.format, args.output)
+    return 0
+
+
+def run_extract_text(args: argparse.Namespace) -> int:
+    try:
+        items = load_inventory_csv(args.input)
+        results = extract_inventory_text(items, args.files_dir, args.output_dir, args.limit)
+        write_extraction_report(results, args.report)
+    except OSError as exc:
+        print(f"Errore estrazione testo: {exc}", file=sys.stderr)
+        return 2
+
+    _print_extraction_results(results, args.report)
     return 0
 
 
@@ -420,6 +465,27 @@ def _print_ocr_plan(plan: OcrPlan) -> None:
         for example in bucket.examples:
             print(f"  - {example}")
         print()
+
+
+def _print_extraction_results(results: list[ExtractedText], report_path: Path) -> None:
+    counts: dict[str, int] = {}
+    for result in results:
+        counts[result.status] = counts.get(result.status, 0) + 1
+
+    print(f"Report estrazione: {report_path}")
+    for status, count in sorted(counts.items()):
+        print(f"  {status}: {count}")
+
+    missing_or_pending = [
+        result
+        for result in results
+        if result.status in {"missing_local_file", "requires_ocr", "unsupported", "error"}
+    ]
+    if missing_or_pending:
+        print("Esempi da completare:")
+        for result in missing_or_pending[:10]:
+            detail = f" ({result.detail})" if result.detail else ""
+            print(f"  - {result.name}: {result.status}{detail}")
 
 
 def main(argv: list[str] | None = None) -> int:

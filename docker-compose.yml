@@ -42,6 +42,19 @@ services:
       - ./database:/workspace/database
       - ./scripts:/workspace/scripts:ro
 
+  ocr-worker:
+    build:
+      context: .
+      dockerfile: docker/ocr/Dockerfile
+    container_name: personal-archive-ocr-worker
+    profiles: ["tools"]
+    working_dir: /workspace
+    volumes:
+      - ./config:/workspace/config:ro
+      - ./database:/workspace/database
+    environment:
+      TZ: ${TZ:-Europe/Rome}
+
 volumes:
   n8n-data:
   postgres-data:

@@ -319,6 +319,38 @@ gmail-drive-archiver ocr-plan \
 
 `ocr-plan` e read-only: non scarica file, non esegue OCR e non modifica Drive.
 
+### Estrazione testo locale
+
+Quando i file dell'inventario saranno disponibili localmente in `database/downloads`, puoi
+estrarre testo dove possibile:
+
+```bash
+gmail-drive-archiver extract-text \
+  --input database/inventory-da-classificare.csv \
+  --files-dir database/downloads \
+  --output-dir database/extracted-text \
+  --report database/extract-text-report.csv
+```
+
+Il comando:
+
+- legge file di testo, CSV, XML/HTML/ICS;
+- estrae testo base da DOCX e XLSX usando libreria standard Python;
+- usa `pdftotext` se disponibile per PDF gia testuali;
+- marca PDF/immagini come `requires_ocr` quando serve OCR vero;
+- scrive un report CSV con esito per ogni file.
+
+Per usare gli strumenti OCR dentro Docker:
+
+```bash
+docker compose --profile tools build ocr-worker
+docker compose run --rm ocr-worker gmail-drive-archiver ocr-plan \
+  --input database/inventory-da-classificare.csv
+```
+
+Il container OCR include Tesseract, lingua italiana/inglese, OCRmyPDF e Poppler. Il download
+automatico dei file Drive e l'OCR massivo sono step successivi.
+
 ## Database applicativo
 
 SQLite crea automaticamente:
