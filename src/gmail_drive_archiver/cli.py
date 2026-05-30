@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from .anythingllm_export import AnythingLlmExportResult, export_anythingllm_package
 from .config import ConfigError, load_config, load_split_config
 from .database import ProcessedStore
 from .drive import DriveArchiver, DriveInventory
@@ -214,6 +215,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     analyze_text_command.set_defaults(func=run_analyze_text)
 
+    anythingllm_command = subcommands.add_parser(
+        "prepare-anythingllm",
+        help="prepara testi e metadati per import in AnythingLLM",
+    )
+    anythingllm_command.add_argument(
+        "--inventory",
+        type=Path,
+        default=Path("database") / "inventory-da-classificare.csv",
+        help="CSV generato da inventory",
+    )
+    anythingllm_command.add_argument(
+        "--text-dir",
+        type=Path,
+        default=Path("database") / "extracted-text",
+        help="cartella contenente file .txt estratti",
+    )
+    anythingllm_command.add_argument(
+        "--categories",
+        type=Path,
+        default=DEFAULT_CATEGORIES,
+        help=f"categorie YAML (default: {DEFAULT_CATEGORIES})",
+    )
+    anythingllm_command.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("database") / "anythingllm-import",
+        help="cartella dove creare il pacchetto import",
+    )
+    anythingllm_command.set_defaults(func=run_prepare_anythingllm)
+
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
         "--rules",
@@ -386,6 +417,20 @@ def run_analyze_text(args: argparse.Namespace) -> int:
         return 2
 
     _write_text_analysis(analysis, args.format, args.output)
+    return 0
+
+
+def run_prepare_anythingllm(args: argparse.Namespace) -> int:
+    try:
+        inventory_items = load_inventory_csv(args.inventory)
+        config = load_split_config(None, None, args.categories)
+        analysis = analyze_text_directory(args.text_dir, config.categories)
+        result = export_anythingllm_package(inventory_items, analysis, args.output_dir)
+    except (OSError, ConfigError) as exc:
+        print(f"Errore export AnythingLLM: {exc}", file=sys.stderr)
+        return 2
+
+    _print_anythingllm_export(result)
     return 0
 
 
@@ -648,6 +693,12 @@ def _print_text_analysis(analysis: TextAnalysis) -> None:
         print(f"Non classificati dal contenuto: {len(analysis.unclassified_files)}")
         for path in analysis.unclassified_files[:10]:
             print(f"  - {Path(path).name}")
+
+
+def _print_anythingllm_export(result: AnythingLlmExportResult) -> None:
+    print(f"Documenti esportati per AnythingLLM: {result.exported_count}")
+    print(f"Cartella import: {result.output_dir}")
+    print(f"Manifest: {result.manifest_path}")
 
 
 def main(argv: list[str] | None = None) -> int:

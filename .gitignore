@@ -18,4 +18,5 @@ database/*.json
 database/token.json
 database/downloads/
 database/extracted-text/
+database/anythingllm-import/
 .env

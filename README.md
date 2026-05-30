@@ -377,6 +377,28 @@ gmail-drive-archiver analyze-text \
 `analyze-text` usa le stesse categorie e parole chiave di `analyze-inventory`, ma lavora sul
 contenuto estratto invece che solo sul nome file.
 
+### Preparazione import AnythingLLM
+
+Per creare una cartella importabile in AnythingLLM:
+
+```bash
+gmail-drive-archiver prepare-anythingllm \
+  --inventory database/inventory-da-classificare.csv \
+  --text-dir database/extracted-text \
+  --categories config/categories.yml \
+  --output-dir database/anythingllm-import
+```
+
+Il comando crea:
+
+- file `.txt` con intestazione metadati e contenuto estratto;
+- `manifest.jsonl` con nome originale, ID Drive, link Drive, categoria provvisoria e percorso
+  del file esportato.
+
+La cartella `database/anythingllm-import` puo poi essere importata in un workspace AnythingLLM.
+Le categorie generate restano provvisorie: AnythingLLM/AI servira per ricerca e classificazione
+piu intelligente.
+
 Per usare gli strumenti OCR dentro Docker:
 
 ```bash
