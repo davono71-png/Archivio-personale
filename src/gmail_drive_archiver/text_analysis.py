@@ -45,7 +45,7 @@ def analyze_text_directory(text_dir: Path, categories: list[str]) -> TextAnalysi
 
     for path in files:
         content = path.read_text(encoding="utf-8", errors="replace")
-        matches = _match_categories(f"{path.name}\n{content}", categories)
+        matches = _match_categories(path.name, content, categories)
         analysis = TextFileAnalysis(
             path=str(path),
             categories=matches,
@@ -94,18 +94,34 @@ def text_analysis_to_json(analysis: TextAnalysis) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
-def _match_categories(content: str, categories: list[str]) -> list[TextCategoryMatch]:
-    normalized = content.casefold()
+def _match_categories(filename: str, content: str, categories: list[str]) -> list[TextCategoryMatch]:
     matches: list[TextCategoryMatch] = []
 
     for category in categories:
         keywords = DEFAULT_CATEGORY_KEYWORDS.get(category, ())
-        found = [keyword for keyword in keywords if keyword.casefold() in normalized]
+        filename_hits = [keyword for keyword in keywords if _keyword_present(filename, keyword)]
+        content_hits = [keyword for keyword in keywords if _keyword_present(content, keyword)]
+        found = list(dict.fromkeys(filename_hits + content_hits))
         if found:
-            matches.append(TextCategoryMatch(category=category, score=len(found), keywords=found[:10]))
+            score = len(filename_hits) * 10 + len(content_hits)
+            matches.append(TextCategoryMatch(category=category, score=score, keywords=found[:10]))
 
     matches.sort(key=lambda match: (-match.score, match.category))
     return matches
+
+
+def _keyword_present(text: str, keyword: str) -> bool:
+    normalized_text = _normalize_for_keywords(text)
+    normalized_keyword = _normalize_for_keywords(keyword)
+    if not normalized_keyword:
+        return False
+    return re.search(rf"(?<!\S){re.escape(normalized_keyword)}(?!\S)", normalized_text) is not None
+
+
+def _normalize_for_keywords(value: str) -> str:
+    normalized = value.casefold()
+    normalized = re.sub(r"[^0-9A-Za-zÀ-ÖØ-öø-ÿ]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
 
 
 def _word_count(content: str) -> int:
