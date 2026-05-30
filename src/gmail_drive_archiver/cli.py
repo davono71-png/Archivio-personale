@@ -11,6 +11,7 @@ from .database import ProcessedStore
 from .drive import DriveArchiver, DriveInventory
 from .gmail import GmailArchiver
 from .google_auth import authenticate, build_google_service
+from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
 from .models import ActionResult
 
 
@@ -66,6 +67,31 @@ def build_parser() -> argparse.ArgumentParser:
         help="formato output (default: table)",
     )
     inventory.set_defaults(func=run_inventory)
+
+    analyze_inventory_command = subcommands.add_parser(
+        "analyze-inventory",
+        help="analizza un CSV inventory e propone categorie probabili",
+    )
+    analyze_inventory_command.add_argument(
+        "--input",
+        type=Path,
+        default=Path("database") / "inventory-da-classificare.csv",
+        help="CSV generato da inventory",
+    )
+    analyze_inventory_command.add_argument(
+        "--categories",
+        type=Path,
+        default=DEFAULT_CATEGORIES,
+        help=f"categorie YAML (default: {DEFAULT_CATEGORIES})",
+    )
+    analyze_inventory_command.add_argument("--output", type=Path, help="percorso file JSON di output")
+    analyze_inventory_command.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="formato output (default: table)",
+    )
+    analyze_inventory_command.set_defaults(func=run_analyze_inventory)
 
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
@@ -171,6 +197,19 @@ def run_inventory(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_analyze_inventory(args: argparse.Namespace) -> int:
+    try:
+        config = load_split_config(None, None, args.categories)
+        items = load_inventory_csv(args.input)
+    except (OSError, ConfigError) as exc:
+        print(f"Errore analisi inventario: {exc}", file=sys.stderr)
+        return 2
+
+    analysis = analyze_inventory(items, config.categories)
+    _write_inventory_analysis(analysis, args.format, args.output)
+    return 0
+
+
 def _print_results(results: list[ActionResult], dry_run: bool) -> None:
     prefix = "[DRY-RUN] " if dry_run else ""
     if not results:
@@ -252,6 +291,65 @@ def _print_inventory_table(rows: list[dict[str, str]]) -> None:
             f"{index:04d} {row['id']} "
             f"name={row['name']} mime={row['mime_type']} modified={row['modified_time']}"
         )
+
+
+def _write_inventory_analysis(
+    analysis: InventoryAnalysis,
+    output_format: str,
+    output_path: Path | None,
+) -> None:
+    if output_format == "json":
+        payload = json.dumps(_analysis_payload(analysis), ensure_ascii=False, indent=2)
+        _write_or_print(payload, output_path)
+    else:
+        _print_inventory_analysis(analysis)
+
+
+def _analysis_payload(analysis: InventoryAnalysis) -> dict:
+    return {
+        "total_items": analysis.total_items,
+        "mime_types": dict(analysis.mime_types.most_common()),
+        "extensions": dict(analysis.extensions.most_common()),
+        "categories": [
+            {
+                "category": guess.category,
+                "count": guess.count,
+                "examples": guess.examples,
+            }
+            for guess in analysis.categories
+        ],
+        "unclassified_count": analysis.unclassified_count,
+        "unclassified_examples": analysis.unclassified_examples,
+    }
+
+
+def _print_inventory_analysis(analysis: InventoryAnalysis) -> None:
+    print(f"Totale file: {analysis.total_items}")
+    print()
+
+    print("Tipi MIME:")
+    for mime_type, count in analysis.mime_types.most_common():
+        print(f"  {count:4d}  {mime_type}")
+    print()
+
+    print("Estensioni:")
+    for extension, count in analysis.extensions.most_common():
+        print(f"  {count:4d}  {extension}")
+    print()
+
+    print("Categorie probabili:")
+    if not analysis.categories:
+        print("  Nessuna categoria riconosciuta dai nomi file.")
+    for guess in analysis.categories:
+        examples = "; ".join(guess.examples)
+        print(f"  {guess.count:4d}  {guess.category}  esempi: {examples}")
+    print()
+
+    print(f"Non classificati dai nomi file: {analysis.unclassified_count}")
+    if analysis.unclassified_examples:
+        print("Esempi non classificati:")
+        for example in analysis.unclassified_examples:
+            print(f"  - {example}")
 
 
 def main(argv: list[str] | None = None) -> int:

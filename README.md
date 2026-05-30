@@ -266,6 +266,29 @@ gmail-drive-archiver inventory \
 Il comando `inventory` e read-only: legge i metadati dei file Drive ma non modifica cartelle,
 nomi, label o database.
 
+Per analizzare il CSV e ottenere un primo riassunto per tipi file, estensioni e categorie
+probabili dai nomi:
+
+```bash
+gmail-drive-archiver analyze-inventory \
+  --input database/inventory-da-classificare.csv \
+  --categories config/categories.yml
+```
+
+Per salvare il risultato in JSON:
+
+```bash
+gmail-drive-archiver analyze-inventory \
+  --input database/inventory-da-classificare.csv \
+  --categories config/categories.yml \
+  --format json \
+  --output database/inventory-analysis.json
+```
+
+`analyze-inventory` non usa ancora OCR o AI: e una prima analisi locale basata su metadati,
+estensioni e parole chiave nei nomi file. Serve a capire il contenuto della cartella prima di
+decidere regole, OCR e AnythingLLM.
+
 ## Database applicativo
 
 SQLite crea automaticamente:

@@ -5,7 +5,8 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from gmail_drive_archiver.cli import _write_inventory
+from gmail_drive_archiver.cli import _write_inventory, _write_inventory_analysis
+from gmail_drive_archiver.inventory_analysis import analyze_inventory, InventoryItem
 
 
 class InventoryOutputTest(unittest.TestCase):
@@ -45,6 +46,23 @@ class InventoryOutputTest(unittest.TestCase):
 
         self.assertIn("file-1", output.getvalue())
         self.assertIn("documento.pdf", output.getvalue())
+
+    def test_prints_inventory_analysis(self) -> None:
+        analysis = analyze_inventory(
+            [
+                InventoryItem(id="file-1", name="bonifico.pdf", mime_type="application/pdf"),
+                InventoryItem(id="file-2", name="ricetta.pdf", mime_type="application/pdf"),
+            ],
+            ["Banca", "Salute"],
+        )
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            _write_inventory_analysis(analysis, "table", None)
+
+        self.assertIn("Totale file: 2", output.getvalue())
+        self.assertIn("Banca", output.getvalue())
+        self.assertIn("Salute", output.getvalue())
 
 
 if __name__ == "__main__":
