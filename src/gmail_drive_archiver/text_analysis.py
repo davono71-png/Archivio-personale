@@ -45,7 +45,7 @@ def analyze_text_directory(text_dir: Path, categories: list[str]) -> TextAnalysi
 
     for path in files:
         content = path.read_text(encoding="utf-8", errors="replace")
-        matches = _match_categories(content, categories)
+        matches = _match_categories(f"{path.name}\n{content}", categories)
         analysis = TextFileAnalysis(
             path=str(path),
             categories=matches,

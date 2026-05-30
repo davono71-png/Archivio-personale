@@ -30,6 +30,19 @@ class TextAnalysisTest(unittest.TestCase):
         self.assertEqual(len(analysis.unclassified_files), 1)
         self.assertIn("bonifico.txt", text_analysis_to_json(analysis))
 
+    def test_uses_filename_when_content_has_no_category_keywords(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            text_dir = Path(tmpdir)
+            (text_dir / "timbrature_Tutti_2026_05-file123.txt").write_text(
+                "08:00 12:00 13:00 17:00",
+                encoding="utf-8",
+            )
+
+            analysis = analyze_text_directory(text_dir, ["Lavoro", "Varie"])
+
+        self.assertEqual(analysis.category_counts["Lavoro"], 1)
+        self.assertEqual(analysis.analyzed_files[0].best_category, "Lavoro")
+
 
 if __name__ == "__main__":
     unittest.main()
