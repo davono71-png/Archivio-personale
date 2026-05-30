@@ -5,9 +5,10 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from gmail_drive_archiver.cli import _write_inventory, _write_inventory_analysis, _write_ocr_plan
+from gmail_drive_archiver.cli import _write_inventory, _write_inventory_analysis, _write_ocr_plan, _write_text_analysis
 from gmail_drive_archiver.inventory_analysis import analyze_inventory, InventoryItem
 from gmail_drive_archiver.ocr_plan import build_ocr_plan
+from gmail_drive_archiver.text_analysis import analyze_text_directory
 
 
 class InventoryOutputTest(unittest.TestCase):
@@ -79,6 +80,19 @@ class InventoryOutputTest(unittest.TestCase):
 
         self.assertIn("Candidati OCR: 1", output.getvalue())
         self.assertIn("Documenti testuali: 1", output.getvalue())
+
+    def test_prints_text_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            text_dir = Path(tmpdir)
+            (text_dir / "bonifico.txt").write_text("bonifico conto pagamento", encoding="utf-8")
+            analysis = analyze_text_directory(text_dir, ["Banca"])
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            _write_text_analysis(analysis, "table", None)
+
+        self.assertIn("Totale testi analizzati: 1", output.getvalue())
+        self.assertIn("Banca", output.getvalue())
 
 
 if __name__ == "__main__":

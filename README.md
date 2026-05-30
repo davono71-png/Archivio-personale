@@ -356,6 +356,27 @@ Il comando:
 - marca PDF/immagini come `requires_ocr` quando serve OCR vero;
 - scrive un report CSV con esito per ogni file.
 
+Per analizzare il contenuto dei testi gia estratti:
+
+```bash
+gmail-drive-archiver analyze-text \
+  --text-dir database/extracted-text \
+  --categories config/categories.yml
+```
+
+Per salvare un JSON:
+
+```bash
+gmail-drive-archiver analyze-text \
+  --text-dir database/extracted-text \
+  --categories config/categories.yml \
+  --format json \
+  --output database/text-analysis.json
+```
+
+`analyze-text` usa le stesse categorie e parole chiave di `analyze-inventory`, ma lavora sul
+contenuto estratto invece che solo sul nome file.
+
 Per usare gli strumenti OCR dentro Docker:
 
 ```bash

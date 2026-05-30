@@ -15,6 +15,7 @@ from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
 from .models import ActionResult
 from .ocr_plan import OcrPlan, build_ocr_plan
+from .text_analysis import TextAnalysis, analyze_text_directory, text_analysis_to_json
 from .text_extraction import ExtractedText, extract_inventory_text, write_extraction_report
 
 
@@ -188,6 +189,31 @@ def build_parser() -> argparse.ArgumentParser:
     extract_text_command.add_argument("--limit", type=int, help="limita il numero di righe inventario da processare")
     extract_text_command.set_defaults(func=run_extract_text)
 
+    analyze_text_command = subcommands.add_parser(
+        "analyze-text",
+        help="analizza i testi estratti e propone categorie dal contenuto",
+    )
+    analyze_text_command.add_argument(
+        "--text-dir",
+        type=Path,
+        default=Path("database") / "extracted-text",
+        help="cartella contenente file .txt estratti",
+    )
+    analyze_text_command.add_argument(
+        "--categories",
+        type=Path,
+        default=DEFAULT_CATEGORIES,
+        help=f"categorie YAML (default: {DEFAULT_CATEGORIES})",
+    )
+    analyze_text_command.add_argument("--output", type=Path, help="percorso file JSON di output")
+    analyze_text_command.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="formato output (default: table)",
+    )
+    analyze_text_command.set_defaults(func=run_analyze_text)
+
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
         "--rules",
@@ -348,6 +374,18 @@ def run_extract_text(args: argparse.Namespace) -> int:
         return 2
 
     _print_extraction_results(results, args.report)
+    return 0
+
+
+def run_analyze_text(args: argparse.Namespace) -> int:
+    try:
+        config = load_split_config(None, None, args.categories)
+        analysis = analyze_text_directory(args.text_dir, config.categories)
+    except (OSError, ConfigError) as exc:
+        print(f"Errore analisi testi: {exc}", file=sys.stderr)
+        return 2
+
+    _write_text_analysis(analysis, args.format, args.output)
     return 0
 
 
@@ -571,6 +609,45 @@ def _print_download_results(results: list[DownloadResult], report_path: Path) ->
         for result in incomplete[:10]:
             detail = f" ({result.detail})" if result.detail else ""
             print(f"  - {result.name}: {result.status}{detail}")
+
+
+def _write_text_analysis(
+    analysis: TextAnalysis,
+    output_format: str,
+    output_path: Path | None,
+) -> None:
+    if output_format == "json":
+        payload = text_analysis_to_json(analysis)
+        _write_or_print(payload, output_path)
+    else:
+        _print_text_analysis(analysis)
+
+
+def _print_text_analysis(analysis: TextAnalysis) -> None:
+    print(f"Totale testi analizzati: {analysis.total_files}")
+    print()
+
+    print("Categorie dal contenuto:")
+    if not analysis.category_counts:
+        print("  Nessuna categoria riconosciuta.")
+    for category, count in sorted(analysis.category_counts.items(), key=lambda item: (-item[1], item[0])):
+        print(f"  {count:4d}  {category}")
+    print()
+
+    print("File:")
+    for item in analysis.analyzed_files[:20]:
+        best = item.best_category or "Non classificato"
+        detail = ""
+        if item.categories:
+            keywords = ", ".join(item.categories[0].keywords)
+            detail = f" keywords={keywords}"
+        print(f"  - {Path(item.path).name}: {best} parole={item.word_count}{detail}")
+
+    if analysis.unclassified_files:
+        print()
+        print(f"Non classificati dal contenuto: {len(analysis.unclassified_files)}")
+        for path in analysis.unclassified_files[:10]:
+            print(f"  - {Path(path).name}")
 
 
 def main(argv: list[str] | None = None) -> int:
