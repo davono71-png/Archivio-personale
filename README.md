@@ -87,6 +87,9 @@ N8N_HOST=localhost
 N8N_PROTOCOL=http
 N8N_PORT=5678
 ANYTHINGLLM_PORT=3001
+OLLAMA_PORT=11434
+OLLAMA_BASE_PATH=http://ollama:11434
+OLLAMA_MODEL_PREF=llama3.2:3b
 TZ=Europe/Rome
 ```
 
@@ -117,6 +120,41 @@ http://localhost:3001
 ```
 
 Lo storage locale resta in `anythingllm/storage/`, ignorato da Git.
+
+### Uso con Ollama locale
+
+Per evitare costi API Gemini/OpenAI puoi usare Ollama nel profilo Docker `ai`.
+
+Avvia Ollama e AnythingLLM:
+
+```bash
+docker compose --profile ai up -d ollama anythingllm
+```
+
+Scarica un modello leggero:
+
+```bash
+docker compose --profile ai exec ollama ollama pull llama3.2:3b
+```
+
+Alternative piu capaci ma piu pesanti:
+
+```bash
+docker compose --profile ai exec ollama ollama pull qwen2.5:7b
+docker compose --profile ai exec ollama ollama pull llama3.1:8b
+```
+
+In AnythingLLM imposta:
+
+```text
+LLM Provider: Ollama
+Base URL: http://ollama:11434
+Model: llama3.2:3b
+```
+
+Se usi AnythingLLM dal browser ma Ollama gira nel container Docker, usa comunque
+`http://ollama:11434` nelle impostazioni interne di AnythingLLM, perche i container si parlano
+tramite la rete Docker.
 
 ## Installazione CLI Python
 

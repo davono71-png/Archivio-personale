@@ -30,6 +30,8 @@ Cartella finale
 - **n8n**: automazioni Gmail/Drive, download allegati, salvataggio su Drive e applicazione
   etichette.
 - **CLI Python**: modulo operativo per regole YAML, OAuth Google, dry-run e tracciamento SQLite.
+- **AnythingLLM + Ollama**: ricerca AI e classificazione locale senza costi API esterne quando
+  la qualita del modello locale e sufficiente.
 - **Database**: stato di email, file salvati, categoria assegnata, rinomina e stato elaborazione.
 - **Config YAML**: categorie e mapping cartelle modificabili senza cambiare codice.
 
