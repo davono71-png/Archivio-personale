@@ -417,6 +417,12 @@ La cartella `database/anythingllm-import` puo poi essere importata in un workspa
 Le categorie generate restano provvisorie: AnythingLLM/AI servira per ricerca e classificazione
 piu intelligente.
 
+Prompt consigliato per classificare i documenti importati:
+
+```text
+docs/prompts/anythingllm-classification.md
+```
+
 Per usare gli strumenti OCR dentro Docker:
 
 ```bash
