@@ -82,6 +82,46 @@ class AiReviewTest(unittest.TestCase):
 
         self.assertEqual(row, ("Casa", "Archivia"))
 
+    def test_summarizes_ai_review_items(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                store.record_ai_review_item(
+                    document_name="Bolletta Eni",
+                    category="Casa",
+                    subcategory="Bolletta Energia",
+                    owner="Famiglia",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Archivia",
+                    duplicate_of="",
+                    confidence="100",
+                    reason="Promemoria bolletta",
+                    source_path="review.md",
+                )
+                store.record_ai_review_item(
+                    document_name="POS.docx",
+                    category="Lavoro",
+                    subcategory="Sicurezza",
+                    owner="Azienda/Lavoro",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Da verificare",
+                    duplicate_of="",
+                    confidence="90",
+                    reason="Documento operativo",
+                    source_path="review.md",
+                )
+
+                categories = store.ai_review_counts_by_category()
+                actions = store.ai_review_counts_by_action()
+                latest = store.latest_ai_review_items(limit=1)
+
+        self.assertEqual(dict(categories), {"Casa": 1, "Lavoro": 1})
+        self.assertEqual(dict(actions), {"Archivia": 1, "Da verificare": 1})
+        self.assertEqual(len(latest), 1)
+        self.assertEqual(latest[0]["document_name"], "POS.docx")
+
 
 if __name__ == "__main__":
     unittest.main()

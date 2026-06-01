@@ -231,6 +231,64 @@ class ProcessedStore:
                 ),
             )
 
+    def ai_review_counts_by_category(self) -> list[tuple[str, int]]:
+        with closing(
+            self._connection.execute(
+                """
+                SELECT COALESCE(NULLIF(category, ''), 'Senza categoria') AS category, COUNT(*) AS count
+                FROM ai_review_items
+                GROUP BY COALESCE(NULLIF(category, ''), 'Senza categoria')
+                ORDER BY count DESC, category ASC
+                """
+            )
+        ) as cursor:
+            return [(str(row[0]), int(row[1])) for row in cursor.fetchall()]
+
+    def ai_review_counts_by_action(self) -> list[tuple[str, int]]:
+        with closing(
+            self._connection.execute(
+                """
+                SELECT COALESCE(NULLIF(recommended_action, ''), 'Senza azione') AS action, COUNT(*) AS count
+                FROM ai_review_items
+                GROUP BY COALESCE(NULLIF(recommended_action, ''), 'Senza azione')
+                ORDER BY count DESC, action ASC
+                """
+            )
+        ) as cursor:
+            return [(str(row[0]), int(row[1])) for row in cursor.fetchall()]
+
+    def latest_ai_review_items(self, limit: int = 20) -> list[dict[str, str]]:
+        with closing(
+            self._connection.execute(
+                """
+                SELECT
+                    document_name,
+                    category,
+                    subcategory,
+                    owner,
+                    recommended_action,
+                    confidence,
+                    reason
+                FROM ai_review_items
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+        ) as cursor:
+            rows = cursor.fetchall()
+
+        keys = [
+            "document_name",
+            "category",
+            "subcategory",
+            "owner",
+            "recommended_action",
+            "confidence",
+            "reason",
+        ]
+        return [{key: "" if value is None else str(value) for key, value in zip(keys, row)} for row in rows]
+
     def close(self) -> None:
         self._connection.close()
 

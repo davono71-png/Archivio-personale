@@ -283,6 +283,14 @@ def build_parser() -> argparse.ArgumentParser:
     ai_review_command.add_argument("--db", type=Path, help="database SQLite dove salvare la review")
     ai_review_command.set_defaults(func=run_import_ai_review)
 
+    review_summary = subcommands.add_parser(
+        "review-summary",
+        help="mostra riepilogo delle classificazioni AI importate nel database",
+    )
+    review_summary.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
+    review_summary.add_argument("--limit", type=int, default=20, help="numero massimo di righe recenti da mostrare")
+    review_summary.set_defaults(func=run_review_summary)
+
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
         "--rules",
@@ -507,6 +515,20 @@ def run_import_ai_review(args: argparse.Namespace) -> int:
         return 2
 
     _print_ai_review_import(items, args.output, args.db)
+    return 0
+
+
+def run_review_summary(args: argparse.Namespace) -> int:
+    try:
+        with ProcessedStore(args.db) as store:
+            category_counts = store.ai_review_counts_by_category()
+            action_counts = store.ai_review_counts_by_action()
+            latest_items = store.latest_ai_review_items(args.limit)
+    except OSError as exc:
+        print(f"Errore riepilogo review AI: {exc}", file=sys.stderr)
+        return 2
+
+    _print_review_summary(category_counts, action_counts, latest_items)
     return 0
 
 
@@ -783,6 +805,41 @@ def _print_ai_review_import(items: list[AiReviewItem], output_path: Path | None,
         print(f"Output: {output_path}")
     if db_path:
         print(f"Database aggiornato: {db_path}")
+
+
+def _print_review_summary(
+    category_counts: list[tuple[str, int]],
+    action_counts: list[tuple[str, int]],
+    latest_items: list[dict[str, str]],
+) -> None:
+    total = sum(count for _category, count in category_counts)
+    print(f"Review AI nel database: {total}")
+    print()
+
+    print("Categorie:")
+    if not category_counts:
+        print("  Nessuna review importata.")
+    for category, count in category_counts:
+        print(f"  {count:4d}  {category}")
+    print()
+
+    print("Azioni consigliate:")
+    if not action_counts:
+        print("  Nessuna azione importata.")
+    for action, count in action_counts:
+        print(f"  {count:4d}  {action}")
+    print()
+
+    print("Ultime review:")
+    if not latest_items:
+        print("  Nessuna riga da mostrare.")
+    for item in latest_items:
+        print(
+            f"  - {item['document_name']}: {item['category']} / "
+            f"{item['recommended_action']} conf={item['confidence']}"
+        )
+        if item["reason"]:
+            print(f"    {item['reason']}")
 
 
 def main(argv: list[str] | None = None) -> int:

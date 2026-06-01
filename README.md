@@ -494,6 +494,14 @@ gmail-drive-archiver import-ai-review \
   --db database/personal-archive.sqlite3
 ```
 
+Per controllare cosa e stato importato nel database:
+
+```bash
+gmail-drive-archiver review-summary \
+  --db database/personal-archive.sqlite3 \
+  --limit 20
+```
+
 Il comando legge la prima tabella Markdown presente nel file e importa colonne come:
 
 - nome documento;
