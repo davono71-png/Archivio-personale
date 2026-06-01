@@ -445,6 +445,29 @@ gmail-drive-archiver prepare-anythingllm \
   --output-dir database/anythingllm-import
 ```
 
+Per creare un lotto pulito e piccolo per Ollama/AnythingLLM:
+
+```bash
+gmail-drive-archiver prepare-anythingllm \
+  --inventory database/inventory-da-classificare.csv \
+  --text-dir database/extracted-text \
+  --categories config/categories.yml \
+  --output-dir database/anythingllm-import-lavoro \
+  --category Lavoro \
+  --min-words 20 \
+  --skip-ignored \
+  --clean-output \
+  --limit 10
+```
+
+Opzioni utili:
+
+- `--min-words 20`: evita testi vuoti o quasi vuoti;
+- `--skip-ignored`: salta file non classificabili dalle euristiche locali;
+- `--category Lavoro`: esporta solo una categoria; ripeti l'opzione per piu categorie;
+- `--limit 10`: limita il lotto;
+- `--clean-output`: rimuove vecchi `.txt` e `manifest.jsonl` dalla cartella output prima di esportare.
+
 Il comando crea:
 
 - file `.txt` con intestazione metadati e contenuto estratto;

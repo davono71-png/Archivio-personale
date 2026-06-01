@@ -243,6 +243,28 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("database") / "anythingllm-import",
         help="cartella dove creare il pacchetto import",
     )
+    anythingllm_command.add_argument(
+        "--min-words",
+        type=int,
+        default=0,
+        help="esporta solo testi con almeno questo numero di parole",
+    )
+    anythingllm_command.add_argument(
+        "--category",
+        action="append",
+        help="esporta solo una categoria; ripeti l'opzione per piu categorie",
+    )
+    anythingllm_command.add_argument("--limit", type=int, help="numero massimo di documenti da esportare")
+    anythingllm_command.add_argument(
+        "--skip-ignored",
+        action="store_true",
+        help="salta testi vuoti o non classificabili dalle euristiche locali",
+    )
+    anythingllm_command.add_argument(
+        "--clean-output",
+        action="store_true",
+        help="rimuove vecchi .txt e manifest dalla cartella output prima di esportare",
+    )
     anythingllm_command.set_defaults(func=run_prepare_anythingllm)
 
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
@@ -425,7 +447,16 @@ def run_prepare_anythingllm(args: argparse.Namespace) -> int:
         inventory_items = load_inventory_csv(args.inventory)
         config = load_split_config(None, None, args.categories)
         analysis = analyze_text_directory(args.text_dir, config.categories)
-        result = export_anythingllm_package(inventory_items, analysis, args.output_dir)
+        result = export_anythingllm_package(
+            inventory_items,
+            analysis,
+            args.output_dir,
+            min_words=args.min_words,
+            categories=set(args.category) if args.category else None,
+            limit=args.limit,
+            skip_ignored=args.skip_ignored,
+            clean_output=args.clean_output,
+        )
     except (OSError, ConfigError) as exc:
         print(f"Errore export AnythingLLM: {exc}", file=sys.stderr)
         return 2

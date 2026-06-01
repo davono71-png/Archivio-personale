@@ -20,19 +20,32 @@ def export_anythingllm_package(
     inventory_items: list[InventoryItem],
     analysis: TextAnalysis,
     output_dir: Path,
+    min_words: int = 0,
+    categories: set[str] | None = None,
+    limit: int | None = None,
+    skip_ignored: bool = False,
+    clean_output: bool = False,
 ) -> AnythingLlmExportResult:
     output_dir.mkdir(parents=True, exist_ok=True)
+    if clean_output:
+        _clean_output_dir(output_dir)
+
     by_id = {item.id: item for item in inventory_items}
     manifest_path = output_dir / "manifest.jsonl"
     exported = 0
 
     with manifest_path.open("w", encoding="utf-8") as manifest:
         for text_file in analysis.analyzed_files:
+            category = text_file.best_category or "Da classificare"
+            if not _should_export(text_file.word_count, category, min_words, categories, skip_ignored):
+                continue
+            if limit is not None and exported >= limit:
+                break
+
             text_path = Path(text_file.path)
             item_id = _item_id_from_text_path(text_path, by_id)
             item = by_id.get(item_id) if item_id else None
             content = text_path.read_text(encoding="utf-8", errors="replace").strip()
-            category = text_file.best_category or "Da classificare"
             target_path = output_dir / _export_filename(text_path, item, category)
             enriched = _enriched_document(content, text_file.path, item, category)
             target_path.write_text(enriched, encoding="utf-8")
@@ -58,6 +71,30 @@ def export_anythingllm_package(
         manifest_path=str(manifest_path),
         output_dir=str(output_dir),
     )
+
+
+def _should_export(
+    word_count: int,
+    category: str,
+    min_words: int,
+    categories: set[str] | None,
+    skip_ignored: bool,
+) -> bool:
+    if word_count < min_words:
+        return False
+    if categories and category not in categories:
+        return False
+    if skip_ignored and (category == "Da classificare" or word_count == 0):
+        return False
+    return True
+
+
+def _clean_output_dir(output_dir: Path) -> None:
+    for path in output_dir.glob("*.txt"):
+        path.unlink()
+    manifest = output_dir / "manifest.jsonl"
+    if manifest.exists():
+        manifest.unlink()
 
 
 def _item_id_from_text_path(text_path: Path, by_id: dict[str, InventoryItem]) -> str | None:
