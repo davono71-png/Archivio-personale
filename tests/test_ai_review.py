@@ -74,13 +74,13 @@ class AiReviewTest(unittest.TestCase):
             connection = sqlite3.connect(db_path)
             try:
                 row = connection.execute(
-                    "SELECT category, recommended_action FROM ai_review_items WHERE document_name = ?",
+                    "SELECT category, recommended_action, review_status FROM ai_review_items WHERE document_name = ?",
                     ("Bolletta Eni",),
                 ).fetchone()
             finally:
                 connection.close()
 
-        self.assertEqual(row, ("Casa", "Archivia"))
+        self.assertEqual(row, ("Casa", "Archivia", "pending"))
 
     def test_summarizes_ai_review_items(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -121,6 +121,58 @@ class AiReviewTest(unittest.TestCase):
         self.assertEqual(dict(actions), {"Archivia": 1, "Da verificare": 1})
         self.assertEqual(len(latest), 1)
         self.assertEqual(latest[0]["document_name"], "POS.docx")
+        self.assertEqual(latest[0]["review_status"], "pending")
+
+    def test_sets_ai_review_status_and_lists_items_by_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                store.record_ai_review_item(
+                    document_name="POS.docx",
+                    category="Lavoro",
+                    subcategory="Sicurezza",
+                    owner="Azienda/Lavoro",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Archivia",
+                    duplicate_of="",
+                    confidence="99",
+                    reason="Documento operativo",
+                    source_path="review.md",
+                )
+
+                updated = store.set_ai_review_status(status="approved", category="Lavoro", min_confidence=95)
+                approved = store.ai_review_items_for_status("approved")
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(len(approved), 1)
+        self.assertEqual(approved[0]["document_name"], "POS.docx")
+
+    def test_marks_ai_review_as_applied(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                store.record_ai_review_item(
+                    document_name="POS.docx",
+                    category="Lavoro",
+                    subcategory="Sicurezza",
+                    owner="Azienda/Lavoro",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Archivia",
+                    duplicate_of="",
+                    confidence="99",
+                    reason="Documento operativo",
+                    source_path="review.md",
+                )
+                updated = store.set_ai_review_status(status="approved")
+                approved = store.ai_review_items_for_status("approved")
+                store.mark_ai_review_applied(int(approved[0]["id"]), "drive-1", "folder-1")
+                applied = store.ai_review_items_for_status("applied")
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(applied[0]["drive_file_id"], "drive-1")
+        self.assertEqual(applied[0]["target_folder_id"], "folder-1")
 
 
 if __name__ == "__main__":

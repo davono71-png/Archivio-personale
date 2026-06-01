@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS ai_review_items (
     confidence TEXT,
     reason TEXT,
     source_path TEXT,
+    review_status TEXT NOT NULL DEFAULT 'pending',
+    drive_file_id TEXT,
+    target_folder_id TEXT,
+    applied_at TEXT,
     imported_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 """
@@ -81,6 +85,22 @@ class ProcessedStore:
     def initialize(self) -> None:
         with self._connection:
             self._connection.executescript(SCHEMA)
+            self._ensure_ai_review_columns()
+
+    def _ensure_ai_review_columns(self) -> None:
+        columns = {
+            row[1]
+            for row in self._connection.execute("PRAGMA table_info(ai_review_items)").fetchall()
+        }
+        migrations = {
+            "review_status": "ALTER TABLE ai_review_items ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending'",
+            "drive_file_id": "ALTER TABLE ai_review_items ADD COLUMN drive_file_id TEXT",
+            "target_folder_id": "ALTER TABLE ai_review_items ADD COLUMN target_folder_id TEXT",
+            "applied_at": "ALTER TABLE ai_review_items ADD COLUMN applied_at TEXT",
+        }
+        for column, statement in migrations.items():
+            if column not in columns:
+                self._connection.execute(statement)
 
     def is_processed(self, service: str, item_id: str, rule_name: str) -> bool:
         with closing(
@@ -212,9 +232,10 @@ class ProcessedStore:
                     duplicate_of,
                     confidence,
                     reason,
-                    source_path
+                    source_path,
+                    review_status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
                 """,
                 (
                     document_name,
@@ -229,6 +250,103 @@ class ProcessedStore:
                     reason,
                     source_path,
                 ),
+            )
+
+    def set_ai_review_status(
+        self,
+        status: str,
+        category: str | None = None,
+        min_confidence: float | None = None,
+        action: str | None = None,
+        limit: int | None = None,
+    ) -> int:
+        filters = ["review_status = 'pending'"]
+        params: list[object] = []
+        if category:
+            filters.append("category = ?")
+            params.append(category)
+        if action:
+            filters.append("recommended_action = ?")
+            params.append(action)
+        if min_confidence is not None:
+            filters.append("CAST(NULLIF(confidence, '') AS REAL) >= ?")
+            params.append(min_confidence)
+
+        where_clause = " AND ".join(filters)
+        limit_clause = " LIMIT ?" if limit is not None else ""
+        if limit is not None:
+            params.append(limit)
+
+        with self._connection:
+            cursor = self._connection.execute(
+                f"""
+                UPDATE ai_review_items
+                SET review_status = ?
+                WHERE id IN (
+                    SELECT id
+                    FROM ai_review_items
+                    WHERE {where_clause}
+                    ORDER BY id ASC
+                    {limit_clause}
+                )
+                """,
+                [status, *params],
+            )
+        return cursor.rowcount
+
+    def ai_review_items_for_status(self, status: str = "approved") -> list[dict[str, str]]:
+        with closing(
+            self._connection.execute(
+                """
+                SELECT
+                    id,
+                    document_name,
+                    category,
+                    subcategory,
+                    owner,
+                    recommended_action,
+                    confidence,
+                    reason,
+                    review_status,
+                    drive_file_id,
+                    target_folder_id
+                FROM ai_review_items
+                WHERE review_status = ?
+                ORDER BY id ASC
+                """,
+                (status,),
+            )
+        ) as cursor:
+            rows = cursor.fetchall()
+
+        keys = [
+            "id",
+            "document_name",
+            "category",
+            "subcategory",
+            "owner",
+            "recommended_action",
+            "confidence",
+            "reason",
+            "review_status",
+            "drive_file_id",
+            "target_folder_id",
+        ]
+        return [{key: "" if value is None else str(value) for key, value in zip(keys, row)} for row in rows]
+
+    def mark_ai_review_applied(self, review_id: int, drive_file_id: str, target_folder_id: str) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                UPDATE ai_review_items
+                SET
+                    review_status = 'applied',
+                    drive_file_id = ?,
+                    target_folder_id = ?,
+                    applied_at = datetime('now')
+                WHERE id = ?
+                """,
+                (drive_file_id, target_folder_id, review_id),
             )
 
     def ai_review_counts_by_category(self) -> list[tuple[str, int]]:
@@ -268,7 +386,8 @@ class ProcessedStore:
                     owner,
                     recommended_action,
                     confidence,
-                    reason
+                    reason,
+                    review_status
                 FROM ai_review_items
                 ORDER BY id DESC
                 LIMIT ?
@@ -286,6 +405,7 @@ class ProcessedStore:
             "recommended_action",
             "confidence",
             "reason",
+            "review_status",
         ]
         return [{key: "" if value is None else str(value) for key, value in zip(keys, row)} for row in rows]
 

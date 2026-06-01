@@ -508,6 +508,38 @@ gmail-drive-archiver review-summary \
   --limit 20
 ```
 
+Per approvare un gruppo di review senza spostare ancora nulla:
+
+```bash
+gmail-drive-archiver set-review-status \
+  --db database/personal-archive.sqlite3 \
+  --status approved \
+  --category Lavoro \
+  --min-confidence 95
+```
+
+Per vedere il piano di spostamento Drive delle review approvate:
+
+```bash
+gmail-drive-archiver apply-review-moves \
+  --db database/personal-archive.sqlite3 \
+  --inventory database/inventory-da-classificare.csv \
+  --drive-config config/drive-folders.yml
+```
+
+Il comando sopra e un dry-run. Per spostare davvero i file su Drive serve aggiungere
+esplicitamente `--apply` e le credenziali:
+
+```bash
+gmail-drive-archiver apply-review-moves \
+  --db database/personal-archive.sqlite3 \
+  --inventory database/inventory-da-classificare.csv \
+  --drive-config config/drive-folders.yml \
+  --credentials config/credentials.json \
+  --token database/token.json \
+  --apply
+```
+
 Il comando legge la prima tabella Markdown presente nel file e importa colonne come:
 
 - nome documento;

@@ -17,6 +17,7 @@ from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
 from .models import ActionResult
 from .ocr_plan import OcrPlan, build_ocr_plan
+from .review_moves import ReviewMove, apply_review_move, build_review_moves
 from .text_analysis import TextAnalysis, analyze_text_directory, text_analysis_to_json
 from .text_extraction import ExtractedText, extract_inventory_text, write_extraction_report
 
@@ -291,6 +292,41 @@ def build_parser() -> argparse.ArgumentParser:
     review_summary.add_argument("--limit", type=int, default=20, help="numero massimo di righe recenti da mostrare")
     review_summary.set_defaults(func=run_review_summary)
 
+    set_review_status = subcommands.add_parser(
+        "set-review-status",
+        help="approva o rifiuta righe AI importate, senza spostare file",
+    )
+    set_review_status.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
+    set_review_status.add_argument("--status", choices=("approved", "rejected", "pending"), required=True)
+    set_review_status.add_argument("--category", help="filtra per categoria")
+    set_review_status.add_argument("--action", help="filtra per azione consigliata")
+    set_review_status.add_argument("--min-confidence", type=float, help="filtra per confidenza minima")
+    set_review_status.add_argument("--limit", type=int, help="numero massimo di righe da aggiornare")
+    set_review_status.set_defaults(func=run_set_review_status)
+
+    review_moves = subcommands.add_parser(
+        "apply-review-moves",
+        help="pianifica o applica spostamenti Drive per review approvate",
+    )
+    review_moves.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
+    review_moves.add_argument(
+        "--inventory",
+        type=Path,
+        default=Path("database") / "inventory-da-classificare.csv",
+        help="CSV generato da inventory",
+    )
+    review_moves.add_argument(
+        "--drive-config",
+        type=Path,
+        default=DEFAULT_DRIVE_CONFIG,
+        help=f"config Drive YAML (default: {DEFAULT_DRIVE_CONFIG})",
+    )
+    review_moves.add_argument("--status", default="approved", help="stato review da pianificare/applicare")
+    review_moves.add_argument("--apply", action="store_true", help="esegue davvero gli spostamenti su Drive")
+    review_moves.add_argument("--credentials", type=Path, help="client OAuth JSON, richiesto con --apply")
+    review_moves.add_argument("--token", type=Path, default=DEFAULT_TOKEN, help=f"token OAuth locale (default: {DEFAULT_TOKEN})")
+    review_moves.set_defaults(func=run_apply_review_moves)
+
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
         "--rules",
@@ -529,6 +565,53 @@ def run_review_summary(args: argparse.Namespace) -> int:
         return 2
 
     _print_review_summary(category_counts, action_counts, latest_items)
+    return 0
+
+
+def run_set_review_status(args: argparse.Namespace) -> int:
+    try:
+        with ProcessedStore(args.db) as store:
+            updated = store.set_ai_review_status(
+                status=args.status,
+                category=args.category,
+                min_confidence=args.min_confidence,
+                action=args.action,
+                limit=args.limit,
+            )
+    except OSError as exc:
+        print(f"Errore aggiornamento stato review AI: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"Righe aggiornate: {updated}")
+    return 0
+
+
+def run_apply_review_moves(args: argparse.Namespace) -> int:
+    try:
+        inventory_items = load_inventory_csv(args.inventory)
+        config = load_split_config(None, args.drive_config, None)
+        with ProcessedStore(args.db) as store:
+            review_items = store.ai_review_items_for_status(args.status)
+            moves = build_review_moves(review_items, inventory_items, config.drive_settings.category_folders)
+
+            applied = 0
+            if args.apply:
+                if not args.credentials:
+                    print("Errore: --credentials e richiesto quando usi --apply.", file=sys.stderr)
+                    return 2
+                credentials = authenticate(args.credentials, args.token)
+                drive_service = build_google_service("drive", "v3", credentials)
+                for move in moves:
+                    if move.status != "planned":
+                        continue
+                    apply_review_move(drive_service, move)
+                    store.mark_ai_review_applied(move.review_id, move.drive_file_id, move.target_folder_id)
+                    applied += 1
+    except (OSError, ConfigError) as exc:
+        print(f"Errore spostamenti review AI: {exc}", file=sys.stderr)
+        return 2
+
+    _print_review_moves(moves, applied=applied, apply=args.apply)
     return 0
 
 
@@ -840,6 +923,26 @@ def _print_review_summary(
         )
         if item["reason"]:
             print(f"    {item['reason']}")
+
+
+def _print_review_moves(moves: list[ReviewMove], applied: int, apply: bool) -> None:
+    mode = "APPLY" if apply else "DRY-RUN"
+    planned = sum(1 for move in moves if move.status == "planned")
+    blocked = len(moves) - planned
+    print(f"[{mode}] Spostamenti pianificati: {planned}")
+    print(f"[{mode}] Spostamenti bloccati: {blocked}")
+    if apply:
+        print(f"[{mode}] Spostamenti eseguiti: {applied}")
+    print()
+
+    for move in moves:
+        if move.status == "planned":
+            print(
+                f"[{mode}] MOVE {move.drive_name} ({move.drive_file_id}) "
+                f"-> {move.category} folder={move.target_folder_id}"
+            )
+        else:
+            print(f"[{mode}] SKIP {move.document_name} status={move.status} {move.detail}".rstrip())
 
 
 def main(argv: list[str] | None = None) -> int:
