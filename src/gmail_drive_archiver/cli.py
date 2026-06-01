@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from .ai_review import AiReviewItem, parse_ai_review_markdown, write_ai_review
 from .anythingllm_export import AnythingLlmExportResult, export_anythingllm_package
 from .config import ConfigError, load_config, load_split_config
 from .database import ProcessedStore
@@ -267,6 +268,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     anythingllm_command.set_defaults(func=run_prepare_anythingllm)
 
+    ai_review_command = subcommands.add_parser(
+        "import-ai-review",
+        help="importa una tabella Markdown di classificazione AI in CSV/JSON o SQLite",
+    )
+    ai_review_command.add_argument("--input", type=Path, required=True, help="file Markdown con tabella AI")
+    ai_review_command.add_argument("--output", type=Path, help="file output CSV/JSON")
+    ai_review_command.add_argument(
+        "--format",
+        choices=("json", "csv"),
+        default="json",
+        help="formato output quando --output e presente",
+    )
+    ai_review_command.add_argument("--db", type=Path, help="database SQLite dove salvare la review")
+    ai_review_command.set_defaults(func=run_import_ai_review)
+
     sync = subcommands.add_parser("sync", help="esegue le regole di archiviazione")
     sync.add_argument(
         "--rules",
@@ -462,6 +478,35 @@ def run_prepare_anythingllm(args: argparse.Namespace) -> int:
         return 2
 
     _print_anythingllm_export(result)
+    return 0
+
+
+def run_import_ai_review(args: argparse.Namespace) -> int:
+    try:
+        items = parse_ai_review_markdown(args.input)
+        if args.output:
+            write_ai_review(items, args.output, args.format)
+        if args.db:
+            with ProcessedStore(args.db) as store:
+                for item in items:
+                    store.record_ai_review_item(
+                        document_name=item.document_name,
+                        category=item.category,
+                        subcategory=item.subcategory,
+                        owner=item.owner,
+                        relevant_date=item.relevant_date,
+                        deadline=item.deadline,
+                        recommended_action=item.recommended_action,
+                        duplicate_of=item.duplicate_of,
+                        confidence=item.confidence,
+                        reason=item.reason,
+                        source_path=str(args.input),
+                    )
+    except OSError as exc:
+        print(f"Errore import review AI: {exc}", file=sys.stderr)
+        return 2
+
+    _print_ai_review_import(items, args.output, args.db)
     return 0
 
 
@@ -730,6 +775,14 @@ def _print_anythingllm_export(result: AnythingLlmExportResult) -> None:
     print(f"Documenti esportati per AnythingLLM: {result.exported_count}")
     print(f"Cartella import: {result.output_dir}")
     print(f"Manifest: {result.manifest_path}")
+
+
+def _print_ai_review_import(items: list[AiReviewItem], output_path: Path | None, db_path: Path | None) -> None:
+    print(f"Righe review AI importate: {len(items)}")
+    if output_path:
+        print(f"Output: {output_path}")
+    if db_path:
+        print(f"Database aggiornato: {db_path}")
 
 
 def main(argv: list[str] | None = None) -> int:

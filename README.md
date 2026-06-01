@@ -484,6 +484,28 @@ Prompt consigliato per classificare i documenti importati:
 docs/prompts/anythingllm-classification.md
 ```
 
+Per trasformare la tabella Markdown restituita da AnythingLLM/GPT mini in dati riutilizzabili:
+
+```bash
+gmail-drive-archiver import-ai-review \
+  --input database/ai-reviews/classificazione-lavoro.md \
+  --output database/ai-reviews/classificazione-lavoro.json \
+  --format json \
+  --db database/personal-archive.sqlite3
+```
+
+Il comando legge la prima tabella Markdown presente nel file e importa colonne come:
+
+- nome documento;
+- categoria;
+- sottocategoria;
+- proprietario;
+- data/scadenza;
+- azione consigliata;
+- duplicato di;
+- confidenza;
+- motivo.
+
 Per usare gli strumenti OCR dentro Docker:
 
 ```bash

@@ -50,6 +50,22 @@ CREATE TABLE IF NOT EXISTS file_classifications (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (file_id) REFERENCES drive_files(file_id)
 );
+
+CREATE TABLE IF NOT EXISTS ai_review_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_name TEXT NOT NULL,
+    category TEXT,
+    subcategory TEXT,
+    owner TEXT,
+    relevant_date TEXT,
+    deadline TEXT,
+    recommended_action TEXT,
+    duplicate_of TEXT,
+    confidence TEXT,
+    reason TEXT,
+    source_path TEXT,
+    imported_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -166,6 +182,53 @@ class ProcessedStore:
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (file_id, category, original_name, new_name, status, confidence, notes),
+            )
+
+    def record_ai_review_item(
+        self,
+        document_name: str,
+        category: str,
+        subcategory: str,
+        owner: str,
+        relevant_date: str,
+        deadline: str,
+        recommended_action: str,
+        duplicate_of: str,
+        confidence: str,
+        reason: str,
+        source_path: str,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO ai_review_items(
+                    document_name,
+                    category,
+                    subcategory,
+                    owner,
+                    relevant_date,
+                    deadline,
+                    recommended_action,
+                    duplicate_of,
+                    confidence,
+                    reason,
+                    source_path
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    document_name,
+                    category,
+                    subcategory,
+                    owner,
+                    relevant_date,
+                    deadline,
+                    recommended_action,
+                    duplicate_of,
+                    confidence,
+                    reason,
+                    source_path,
+                ),
             )
 
     def close(self) -> None:
