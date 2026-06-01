@@ -15,6 +15,7 @@ docker compose up -d
 ```text
 personal-archive-ai
 ├── docker-compose.yml
+├── frontend/
 ├── n8n/
 ├── scripts/
 ├── config/
@@ -54,6 +55,7 @@ Dettagli: `docs/architecture.md`.
 ## Componenti inclusi
 
 - **Docker Compose** con n8n e PostgreSQL per lo stato interno di n8n.
+- **Dashboard UI** statica opzionale via profilo Docker `ui`.
 - **n8n/** come cartella per gli export dei workflow.
 - **AnythingLLM** opzionale via profilo Docker `ai`.
 - **config/** con categorie, regole Gmail e mapping cartelle Drive.
@@ -90,6 +92,7 @@ ANYTHINGLLM_PORT=3001
 OLLAMA_PORT=11434
 OLLAMA_BASE_PATH=http://ollama:11434
 OLLAMA_MODEL_PREF=llama3.2:3b
+DASHBOARD_PORT=8080
 TZ=Europe/Rome
 ```
 
@@ -120,6 +123,29 @@ http://localhost:3001
 ```
 
 Lo storage locale resta in `anythingllm/storage/`, ignorato da Git.
+
+## Avvio dashboard UI
+
+La dashboard e un prototipo statico per visualizzare stato pipeline, review AI, categorie e
+azioni utente.
+
+```bash
+docker compose --profile ui up -d dashboard
+```
+
+Apri:
+
+```text
+http://localhost:8080
+```
+
+Su VPS:
+
+```text
+http://IP_DELLA_VPS:8080
+```
+
+Dettagli: `docs/ui-dashboard.md`.
 
 ### Uso con Ollama locale
 

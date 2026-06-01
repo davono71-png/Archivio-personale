@@ -87,6 +87,16 @@ services:
     environment:
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-24h}
 
+  dashboard:
+    image: nginx:1.27-alpine
+    container_name: personal-archive-dashboard
+    profiles: ["ui"]
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-8080}:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
 volumes:
   n8n-data:
   postgres-data:
