@@ -66,6 +66,9 @@ Regole:
 - Se due documenti sembrano duplicati o copie, segnala "Duplicato" in Azione consigliata e compila "Duplicato di".
 - Se un documento contiene solo metadati incompleti o testo insufficiente, usa "Da verificare".
 - La confidenza deve essere un numero da 0 a 100.
+- Usa confidenza >95 solo quando categoria e azione sono molto evidenti.
+- Usa confidenza tra 70 e 95 quando il documento e probabile ma richiede seconda opinione.
+- Usa confidenza <70 quando serve conferma manuale di Davide.
 - Nel motivo sintetico spiega brevemente quali elementi del documento giustificano la categoria.
 - Mantieni la risposta compatta ma completa.
 ```

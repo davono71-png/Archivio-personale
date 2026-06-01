@@ -484,6 +484,12 @@ Prompt consigliato per classificare i documenti importati:
 docs/prompts/anythingllm-classification.md
 ```
 
+Policy per decidere quando archiviare automaticamente, usare GPT mini o chiedere conferma:
+
+```text
+docs/classification-policy.md
+```
+
 Per trasformare la tabella Markdown restituita da AnythingLLM/GPT mini in dati riutilizzabili:
 
 ```bash

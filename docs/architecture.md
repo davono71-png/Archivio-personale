@@ -34,6 +34,8 @@ Cartella finale
   la qualita del modello locale e sufficiente.
 - **Database**: stato di email, file salvati, categoria assegnata, rinomina e stato elaborazione.
 - **Config YAML**: categorie e mapping cartelle modificabili senza cambiare codice.
+- **Policy classificazione**: soglie di confidenza e knowledge base dei documenti ricorrenti
+  sono descritte in `docs/classification-policy.md`.
 
 ## Percorso evolutivo
 
