@@ -19,5 +19,7 @@ database/token.json
 database/downloads/
 database/extracted-text/
 database/anythingllm-import/
+database/email-text/
+database/gmail-text-export-report.csv
 anythingllm/storage/
 .env

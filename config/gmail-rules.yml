@@ -10,3 +10,9 @@ gmail:
     label: "Archivio/Newsletter"
     mark_read: true
     max_items: 100
+
+  - name: email-importanti-testo
+    query: "label:Da archiviare newer_than:2y"
+    label: "Archivio/Processato"
+    mark_read: false
+    max_items: 50

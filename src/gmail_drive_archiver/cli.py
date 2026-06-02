@@ -13,6 +13,7 @@ from .database import ProcessedStore
 from .drive import DriveArchiver, DriveInventory
 from .drive_download import DownloadResult, download_inventory_files, write_download_report
 from .gmail import GmailArchiver
+from .gmail_export import GmailExportResult, GmailTextExporter, write_gmail_export_report
 from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryAnalysis, analyze_inventory, load_inventory_csv
 from .models import ActionResult
@@ -116,6 +117,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="riscarica anche i file gia presenti localmente",
     )
     download_inventory.set_defaults(func=run_download_inventory)
+
+    export_gmail_text = subcommands.add_parser(
+        "export-gmail-text",
+        help="esporta email Gmail come file Markdown testuali",
+    )
+    export_gmail_text.add_argument(
+        "--gmail-rules",
+        type=Path,
+        default=DEFAULT_GMAIL_RULES,
+        help=f"regole Gmail YAML (default: {DEFAULT_GMAIL_RULES})",
+    )
+    export_gmail_text.add_argument("--credentials", type=Path, required=True, help="client OAuth JSON scaricato da Google Cloud")
+    export_gmail_text.add_argument("--token", type=Path, default=DEFAULT_TOKEN, help=f"token OAuth locale (default: {DEFAULT_TOKEN})")
+    export_gmail_text.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
+    export_gmail_text.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("database") / "email-text",
+        help="cartella dove salvare le email esportate",
+    )
+    export_gmail_text.add_argument(
+        "--report",
+        type=Path,
+        default=Path("database") / "gmail-text-export-report.csv",
+        help="CSV con esito export email",
+    )
+    export_gmail_text.add_argument("--owner", choices=("Davide", "Ralitza", "Non chiaro"), default="Davide")
+    export_gmail_text.add_argument("--visibility", choices=("privato", "condiviso"), default="privato")
+    export_gmail_text.add_argument("--rule", help="esporta solo una regola Gmail per nome")
+    export_gmail_text.add_argument("--force", action="store_true", help="riesporta anche email gia processate")
+    export_gmail_text.set_defaults(func=run_export_gmail_text)
 
     analyze_inventory_command = subcommands.add_parser(
         "analyze-inventory",
@@ -449,6 +481,39 @@ def run_download_inventory(args: argparse.Namespace) -> int:
         return 2
 
     _print_download_results(results, args.report)
+    return 0
+
+
+def run_export_gmail_text(args: argparse.Namespace) -> int:
+    try:
+        config = load_split_config(args.gmail_rules, None, None)
+    except (OSError, ConfigError) as exc:
+        print(f"Errore configurazione Gmail: {exc}", file=sys.stderr)
+        return 2
+
+    rules = [rule for rule in config.gmail if not args.rule or rule.name == args.rule]
+    if not rules:
+        print("Nessuna regola Gmail da esportare.", file=sys.stderr)
+        return 2
+
+    credentials = authenticate(args.credentials, args.token)
+    gmail_service = build_google_service("gmail", "v1", credentials)
+    results: list[GmailExportResult] = []
+    with ProcessedStore(args.db) as store:
+        exporter = GmailTextExporter(gmail_service, store)
+        for rule in rules:
+            results.extend(
+                exporter.export_rule(
+                    rule,
+                    args.output_dir,
+                    owner=args.owner,
+                    visibility=args.visibility,
+                    force=args.force,
+                )
+            )
+
+    write_gmail_export_report(results, args.report)
+    _print_gmail_export_results(results, args.output_dir, args.report)
     return 0
 
 
@@ -836,6 +901,22 @@ def _print_download_results(results: list[DownloadResult], report_path: Path) ->
         for result in incomplete[:10]:
             detail = f" ({result.detail})" if result.detail else ""
             print(f"  - {result.name}: {result.status}{detail}")
+
+
+def _print_gmail_export_results(results: list[GmailExportResult], output_dir: Path, report_path: Path) -> None:
+    counts: dict[str, int] = {}
+    for result in results:
+        counts[result.status] = counts.get(result.status, 0) + 1
+
+    print(f"Email considerate: {len(results)}")
+    print(f"Cartella export: {output_dir}")
+    print(f"Report: {report_path}")
+    for status, count in sorted(counts.items()):
+        print(f"  {status}: {count}")
+
+    for result in results[:10]:
+        if result.status == "exported":
+            print(f"  - {result.subject} -> {result.output_path}")
 
 
 def _write_text_analysis(

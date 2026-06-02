@@ -469,6 +469,37 @@ gmail-drive-archiver analyze-text \
 `analyze-text` usa le stesse categorie e parole chiave di `analyze-inventory`, ma lavora sul
 contenuto estratto invece che solo sul nome file.
 
+### Esportazione email Gmail testuali
+
+Le email senza allegati possono essere esportate come documenti Markdown con metadati:
+
+```bash
+gmail-drive-archiver export-gmail-text \
+  --gmail-rules config/gmail-rules.yml \
+  --credentials config/credentials.json \
+  --token database/token.json \
+  --db database/personal-archive.sqlite3 \
+  --output-dir database/email-text \
+  --report database/gmail-text-export-report.csv \
+  --owner Davide \
+  --visibility privato
+```
+
+Per esportare una sola regola:
+
+```bash
+gmail-drive-archiver export-gmail-text \
+  --gmail-rules config/gmail-rules.yml \
+  --credentials config/credentials.json \
+  --token database/token.json \
+  --db database/personal-archive.sqlite3 \
+  --rule allegati-da-archiviare \
+  --output-dir database/email-text
+```
+
+Il comando non archivia email e non modifica Gmail: legge i messaggi, salva Markdown in
+`database/email-text`, registra gli ID gia esportati e produce un report CSV.
+
 ### Preparazione import AnythingLLM
 
 Per creare una cartella importabile in AnythingLLM:
