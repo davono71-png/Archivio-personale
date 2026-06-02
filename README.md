@@ -101,6 +101,12 @@ DASHBOARD_PORT=8080
 DASHBOARD_API_PORT=8090
 DASHBOARD_DB=database/personal-archive.sqlite3
 DASHBOARD_INVENTORY=database/inventory-da-classificare.csv
+DASHBOARD_DRIVE_CONFIG=config/drive-folders.yml
+DASHBOARD_CREDENTIALS=config/credentials.json
+DASHBOARD_TOKEN=database/token.json
+ANYTHINGLLM_API_BASE=http://anythingllm:3001
+ANYTHINGLLM_API_KEY=
+ANYTHINGLLM_WORKSPACE=
 TZ=Europe/Rome
 ```
 

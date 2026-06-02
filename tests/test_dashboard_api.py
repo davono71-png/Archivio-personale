@@ -1,6 +1,8 @@
 import unittest
+import tempfile
+from pathlib import Path
 
-from gmail_drive_archiver.dashboard_api import _review_payload
+from gmail_drive_archiver.dashboard_api import _anythingllm_search, _apply_single_review_move, _review_payload
 from gmail_drive_archiver.inventory_analysis import InventoryItem
 
 
@@ -52,6 +54,27 @@ class DashboardApiTest(unittest.TestCase):
 
         self.assertEqual(payload["driveFileId"], "drive-1")
         self.assertEqual(payload["driveLink"], "https://drive.google.com/file/d/drive-1/view")
+
+    def test_anythingllm_search_reports_missing_configuration(self) -> None:
+        result = _anythingllm_search("http://anythingllm:3001", "", "", "test")
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "anythingllm_not_configured")
+
+    def test_apply_single_review_requires_google_credentials(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            result = _apply_single_review_move(
+                review_id=1,
+                db_path=root / "state.sqlite3",
+                inventory_path=root / "inventory.csv",
+                drive_config_path=root / "drive.yml",
+                credentials_path=root / "missing-credentials.json",
+                token_path=root / "missing-token.json",
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "missing_google_credentials")
 
 
 if __name__ == "__main__":

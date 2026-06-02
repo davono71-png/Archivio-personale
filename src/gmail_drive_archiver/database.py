@@ -519,6 +519,13 @@ class ProcessedStore:
         ]
         return [{key: "" if value is None else str(value) for key, value in zip(keys, row)} for row in rows]
 
+    def ai_review_item_by_id(self, review_id: int) -> dict[str, str] | None:
+        items = self.ai_review_items(limit=100000)
+        for item in items:
+            if item["id"] == str(review_id):
+                return item
+        return None
+
     def ai_review_items_for_status(self, status: str = "approved") -> list[dict[str, str]]:
         with closing(
             self._connection.execute(

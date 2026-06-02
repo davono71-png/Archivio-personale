@@ -145,6 +145,10 @@ const statusLabels = {
   applied: "Applicato",
 };
 
+const ownerNames = ["Davide", "Ralitza", "Non chiaro"];
+const visibilityNames = ["privato", "condiviso"];
+const editableStatuses = ["pending", "approved", "rejected", "applied"];
+
 function filteredDocuments() {
   const query = state.query.trim().toLowerCase();
   return state.documents.filter((doc) => {
@@ -200,14 +204,14 @@ function renderDocuments() {
         <div class="doc-title">${titleMarkup}</div>
         <div class="doc-subtitle">${escapeHtml(doc.subcategory)} · ${escapeHtml(doc.source)}</div>
       </td>
-      <td>${escapeHtml(doc.category)}</td>
-      <td>${escapeHtml(doc.owner)}</td>
+      <td>${selectMarkup("category", doc.id, categoryNames, doc.category)}</td>
+      <td>${selectMarkup("owner", doc.id, ownerNames, doc.owner)}</td>
       <td>${doc.confidence}%</td>
-      <td>${escapeHtml(doc.visibility || "privato")}</td>
-      <td><span class="badge ${doc.status}">${statusLabels[doc.status]}</span></td>
+      <td>${selectMarkup("visibility", doc.id, visibilityNames, doc.visibility || "privato")}</td>
+      <td>${selectMarkup("status", doc.id, editableStatuses, doc.status, statusLabels)}</td>
       <td>
         <div class="action-buttons">
-          <button class="small-button approve" data-action="approve" data-id="${doc.id}">Approva</button>
+          <button class="small-button approve" data-action="approve" data-id="${doc.id}">Approva e sposta</button>
           <button class="small-button reject" data-action="reject" data-id="${doc.id}">Rifiuta</button>
         </div>
       </td>
@@ -335,7 +339,7 @@ function approveDocument(id) {
   doc.status = "approved";
   state.selectedId = id;
   render();
-  updateReviewStatus([id], "approved");
+  applyReviewMove(id);
 }
 
 function rejectDocument(id) {
@@ -390,6 +394,16 @@ document.addEventListener("click", (event) => {
   if (target.dataset.action === "trash-placeholder") markForTrash(target.dataset.id);
 });
 
+document.addEventListener("change", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement)) return;
+  if (target.dataset.action !== "row-field") return;
+  const id = target.dataset.id;
+  const field = target.dataset.field;
+  const value = target.value;
+  updateRowField(id, field, value);
+});
+
 document.querySelectorAll(".owner-button").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll(".owner-button").forEach((item) => item.classList.remove("active"));
@@ -429,6 +443,10 @@ document.getElementById("refreshButton").addEventListener("click", () => {
   loadDashboardData();
 });
 
+document.getElementById("aiSearchButton").addEventListener("click", () => {
+  runAiSearch();
+});
+
 async function loadDashboardData() {
   try {
     const [reviewsResponse, summaryResponse] = await Promise.all([
@@ -466,6 +484,25 @@ async function updateReviewStatus(ids, status) {
   }
 }
 
+async function applyReviewMove(id) {
+  if (!state.apiConnected) return;
+  try {
+    const response = await fetch(`${API_BASE}/reviews/apply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      alert(`Spostamento non riuscito: ${payload.error || "errore"} ${payload.detail || ""}`.trim());
+    }
+    await loadDashboardData();
+  } catch (error) {
+    console.error(error);
+    alert("Errore durante lo spostamento.");
+  }
+}
+
 async function updateReviewFields(id, fields) {
   if (!state.apiConnected) return;
   try {
@@ -479,6 +516,57 @@ async function updateReviewFields(id, fields) {
   } catch (error) {
     console.error(error);
   }
+}
+
+function updateRowField(id, field, value) {
+  const doc = state.documents.find((item) => item.id === id);
+  if (!doc) return;
+  if (field === "status") {
+    doc.status = value;
+    state.selectedId = id;
+    render();
+    updateReviewStatus([id], value);
+    return;
+  }
+  doc[field] = value;
+  state.selectedId = id;
+  render();
+  updateReviewFields(id, { [field]: value });
+}
+
+async function runAiSearch() {
+  const query = document.getElementById("searchInput").value.trim();
+  const resultBox = document.getElementById("aiSearchResult");
+  const status = document.getElementById("aiSearchStatus");
+  if (!query) {
+    status.textContent = "Scrivi una domanda.";
+    return;
+  }
+  status.textContent = "Ricerca AI in corso...";
+  resultBox.hidden = true;
+  resultBox.textContent = "";
+  try {
+    const response = await fetch(`${API_BASE}/search/ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    const payload = await response.json();
+    resultBox.hidden = false;
+    resultBox.textContent = payload.answer || payload.detail || payload.error || "Nessuna risposta.";
+    status.textContent = payload.ok ? "Risposta AI ricevuta." : "AI non configurata o non disponibile.";
+  } catch (error) {
+    resultBox.hidden = false;
+    resultBox.textContent = "Errore chiamata AI.";
+    status.textContent = "";
+  }
+}
+
+function selectMarkup(field, id, values, selected, labels = null) {
+  const options = values
+    .map((value) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(labels?.[value] || value)}</option>`)
+    .join("");
+  return `<select class="row-select" data-action="row-field" data-field="${field}" data-id="${escapeHtml(id)}">${options}</select>`;
 }
 
 function normalizeApiReview(item) {

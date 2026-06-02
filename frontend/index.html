@@ -36,6 +36,11 @@
           </div>
         </section>
 
+        <section class="deadline-card">
+          <p class="section-label">Scadenze percepite</p>
+          <div id="deadlineList" class="deadline-list"></div>
+        </section>
+
         <section class="system-card">
           <p class="section-label">Sistema</p>
           <div class="system-row">
@@ -71,6 +76,11 @@
             <input id="searchInput" type="search" placeholder="Cerca bollette 2025, garanzie, POS, Banco BPM..." />
             <button id="clearSearch" title="Pulisci ricerca">×</button>
           </div>
+          <div class="search-actions">
+            <button class="primary-button" id="aiSearchButton">Cerca con AI</button>
+            <span id="aiSearchStatus" class="ai-search-status"></span>
+          </div>
+          <div id="aiSearchResult" class="ai-search-result" hidden></div>
         </section>
 
         <section class="stats-grid" aria-label="Stato pipeline">
@@ -152,26 +162,6 @@
           </div>
 
           <aside class="right-column">
-            <section class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Categorie</p>
-                  <h3>Vista archivio</h3>
-                </div>
-              </div>
-              <div class="category-grid" id="categoryGrid"></div>
-            </section>
-
-            <section class="panel dark-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Scadenze</p>
-                  <h3>Da non perdere</h3>
-                </div>
-              </div>
-              <div id="deadlineList" class="deadline-list"></div>
-            </section>
-
             <section class="panel detail-panel">
               <div class="panel-header">
                 <div>
@@ -181,6 +171,16 @@
               </div>
               <p id="detailBody">Clicca una riga per vedere motivo AI, azione consigliata e link Drive.</p>
               <div id="detailMeta" class="detail-meta"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Categorie</p>
+                  <h3>Vista archivio</h3>
+                </div>
+              </div>
+              <div class="category-grid" id="categoryGrid"></div>
             </section>
           </aside>
         </section>

@@ -229,6 +229,28 @@ button {
   width: 38px;
 }
 
+.search-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ai-search-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ai-search-result {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  line-height: 1.6;
+  margin-top: 12px;
+  padding: 16px;
+  white-space: pre-wrap;
+}
+
 .stats-grid {
   display: grid;
   gap: 16px;
@@ -290,6 +312,13 @@ select {
   border-radius: 12px;
   color: #334155;
   padding: 10px 12px;
+}
+
+.row-select {
+  max-width: 170px;
+  min-width: 120px;
+  padding: 8px 10px;
+  width: 100%;
 }
 
 .table-wrap {
@@ -430,6 +459,21 @@ tr[data-id]:hover {
   margin-top: 4px;
 }
 
+.deadline-card {
+  background: var(--dark);
+  border-radius: var(--radius-xl);
+  color: #fff;
+  padding: 16px;
+}
+
+.deadline-card .section-label {
+  color: #cbd5e1;
+}
+
+.deadline-card .deadline-list {
+  margin-top: 12px;
+}
+
 .timeline {
   display: grid;
   gap: 12px;
@@ -462,6 +506,9 @@ tr[data-id]:hover {
 
 .detail-panel {
   min-height: 220px;
+  position: sticky;
+  top: 18px;
+  z-index: 2;
 }
 
 .detail-panel #detailBody {
@@ -568,14 +615,20 @@ tr[data-id]:hover {
   }
 
   .topbar-actions,
-  .filter-row {
+  .filter-row,
+  .search-actions {
     flex-direction: column;
     width: 100%;
   }
 
   .topbar-actions button,
-  .filter-row select {
+  .filter-row select,
+  .search-actions button {
     width: 100%;
+  }
+
+  .detail-panel {
+    position: static;
   }
 
   .stats-grid,

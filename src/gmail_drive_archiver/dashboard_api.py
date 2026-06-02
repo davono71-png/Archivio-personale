@@ -4,16 +4,24 @@ import argparse
 import json
 import os
 import re
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from .config import load_split_config
 from .database import ProcessedStore
+from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryItem, load_inventory_csv
+from .review_moves import apply_review_move, build_review_moves
 
 
 DEFAULT_DB = Path("database") / "personal-archive.sqlite3"
 DEFAULT_INVENTORY = Path("database") / "inventory-da-classificare.csv"
+DEFAULT_DRIVE_CONFIG = Path("config") / "drive-folders.yml"
+DEFAULT_CREDENTIALS = Path("config") / "credentials.json"
+DEFAULT_TOKEN = Path("database") / "token.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,17 +35,52 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path(os.getenv("DASHBOARD_INVENTORY", str(DEFAULT_INVENTORY))),
         help="CSV inventory per associare review ai link Drive",
     )
+    parser.add_argument("--drive-config", type=Path, default=Path(os.getenv("DASHBOARD_DRIVE_CONFIG", str(DEFAULT_DRIVE_CONFIG))))
+    parser.add_argument("--credentials", type=Path, default=Path(os.getenv("DASHBOARD_CREDENTIALS", str(DEFAULT_CREDENTIALS))))
+    parser.add_argument("--token", type=Path, default=Path(os.getenv("DASHBOARD_TOKEN", str(DEFAULT_TOKEN))))
+    parser.add_argument("--anythingllm-base-url", default=os.getenv("ANYTHINGLLM_API_BASE", "http://anythingllm:3001"))
+    parser.add_argument("--anythingllm-api-key", default=os.getenv("ANYTHINGLLM_API_KEY", ""))
+    parser.add_argument("--anythingllm-workspace", default=os.getenv("ANYTHINGLLM_WORKSPACE", ""))
     return parser
 
 
-def run_server(host: str, port: int, db_path: Path, inventory_path: Path) -> None:
-    handler = _handler_factory(db_path, inventory_path)
+def run_server(
+    host: str,
+    port: int,
+    db_path: Path,
+    inventory_path: Path,
+    drive_config_path: Path,
+    credentials_path: Path,
+    token_path: Path,
+    anythingllm_base_url: str,
+    anythingllm_api_key: str,
+    anythingllm_workspace: str,
+) -> None:
+    handler = _handler_factory(
+        db_path,
+        inventory_path,
+        drive_config_path,
+        credentials_path,
+        token_path,
+        anythingllm_base_url,
+        anythingllm_api_key,
+        anythingllm_workspace,
+    )
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Dashboard API listening on http://{host}:{port} db={db_path} inventory={inventory_path}", flush=True)
     server.serve_forever()
 
 
-def _handler_factory(db_path: Path, inventory_path: Path):
+def _handler_factory(
+    db_path: Path,
+    inventory_path: Path,
+    drive_config_path: Path,
+    credentials_path: Path,
+    token_path: Path,
+    anythingllm_base_url: str,
+    anythingllm_api_key: str,
+    anythingllm_workspace: str,
+):
     class DashboardApiHandler(BaseHTTPRequestHandler):
         server_version = "PersonalArchiveDashboardAPI/0.1"
 
@@ -107,6 +150,36 @@ def _handler_factory(db_path: Path, inventory_path: Path):
                     self._send_json({"updated": updated})
                 except (TypeError, ValueError, json.JSONDecodeError) as exc:
                     self._send_json({"error": str(exc)}, status=400)
+                return
+            if parsed.path == "/api/reviews/apply":
+                try:
+                    payload = self._read_json()
+                    review_id = int(payload.get("id"))
+                    result = _apply_single_review_move(
+                        review_id,
+                        db_path,
+                        inventory_path,
+                        drive_config_path,
+                        credentials_path,
+                        token_path,
+                    )
+                    status = 200 if result.get("ok") else 400
+                    self._send_json(result, status=status)
+                except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                    self._send_json({"ok": False, "error": str(exc)}, status=400)
+                return
+            if parsed.path == "/api/search/ai":
+                try:
+                    payload = self._read_json()
+                    query = str(payload.get("query", "")).strip()
+                    if not query:
+                        self._send_json({"ok": False, "error": "query_required"}, status=400)
+                        return
+                    result = _anythingllm_search(anythingllm_base_url, anythingllm_api_key, anythingllm_workspace, query)
+                    status = 200 if result.get("ok") else 400
+                    self._send_json(result, status=status)
+                except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                    self._send_json({"ok": False, "error": str(exc)}, status=400)
                 return
             self._send_json({"error": "not_found"}, status=404)
 
@@ -221,9 +294,93 @@ def _drive_link(file_id: str) -> str:
     return f"https://drive.google.com/file/d/{file_id}/view"
 
 
+def _apply_single_review_move(
+    review_id: int,
+    db_path: Path,
+    inventory_path: Path,
+    drive_config_path: Path,
+    credentials_path: Path,
+    token_path: Path,
+) -> dict[str, object]:
+    if not credentials_path.exists() or not token_path.exists():
+        return {"ok": False, "error": "missing_google_credentials"}
+
+    inventory_items = load_inventory_csv(inventory_path)
+    config = load_split_config(None, drive_config_path, None)
+    with ProcessedStore(db_path) as store:
+        review = store.ai_review_item_by_id(review_id)
+        if not review:
+            return {"ok": False, "error": "review_not_found"}
+        store.set_ai_review_status_by_ids([review_id], "approved")
+        review["review_status"] = "approved"
+        moves = build_review_moves([review], inventory_items, config.drive_settings.category_folders)
+        move = moves[0] if moves else None
+        if not move or move.status != "planned":
+            return {
+                "ok": False,
+                "error": move.status if move else "no_move",
+                "detail": move.detail if move else "",
+            }
+        credentials = authenticate(credentials_path, token_path)
+        drive_service = build_google_service("drive", "v3", credentials)
+        apply_review_move(drive_service, move)
+        store.mark_ai_review_applied(move.review_id, move.drive_file_id, move.target_folder_id)
+        return {
+            "ok": True,
+            "move": {
+                "review_id": move.review_id,
+                "document_name": move.document_name,
+                "drive_file_id": move.drive_file_id,
+                "drive_name": move.drive_name,
+                "category": move.category,
+                "target_folder_id": move.target_folder_id,
+            },
+        }
+
+
+def _anythingllm_search(base_url: str, api_key: str, workspace: str, query: str) -> dict[str, object]:
+    if not api_key or not workspace:
+        return {
+            "ok": False,
+            "error": "anythingllm_not_configured",
+            "answer": "Configura ANYTHINGLLM_API_KEY e ANYTHINGLLM_WORKSPACE per usare la ricerca AI dalla dashboard.",
+        }
+    url = f"{base_url.rstrip('/')}/api/v1/workspace/{workspace}/chat"
+    payload = json.dumps({"message": query, "mode": "query"}).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        return {"ok": False, "error": "anythingllm_request_failed", "detail": str(exc)}
+
+    answer = data.get("textResponse") or data.get("response") or data.get("answer") or json.dumps(data, ensure_ascii=False)
+    return {"ok": True, "answer": answer, "raw": data}
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    run_server(args.host, args.port, args.db, args.inventory)
+    run_server(
+        args.host,
+        args.port,
+        args.db,
+        args.inventory,
+        args.drive_config,
+        args.credentials,
+        args.token,
+        args.anythingllm_base_url,
+        args.anythingllm_api_key,
+        args.anythingllm_workspace,
+    )
     return 0
 
 
