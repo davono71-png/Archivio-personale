@@ -291,6 +291,26 @@ function renderDetail() {
     <div><strong>Visibilita:</strong> ${escapeHtml(doc.visibility || "privato")}</div>
     <div><strong>Azione:</strong> ${escapeHtml(doc.action)}</div>
     <div><strong>Confidenza:</strong> ${doc.confidence}%</div>
+    <div class="edit-grid">
+      <label>
+        Categoria
+        <select id="detailCategory">${categoryNames.map((category) => `<option value="${escapeHtml(category)}" ${category === doc.category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select>
+      </label>
+      <label>
+        Proprietario
+        <select id="detailOwner">
+          ${["Davide", "Ralitza", "Non chiaro"].map((owner) => `<option value="${owner}" ${owner === doc.owner ? "selected" : ""}>${owner}</option>`).join("")}
+        </select>
+      </label>
+      <label>
+        Visibilita
+        <select id="detailVisibility">
+          ${["privato", "condiviso"].map((visibility) => `<option value="${visibility}" ${visibility === (doc.visibility || "privato") ? "selected" : ""}>${visibility}</option>`).join("")}
+        </select>
+      </label>
+      <button class="small-button approve" data-action="save-fields" data-id="${doc.id}">Salva modifiche</button>
+      <button class="small-button reject" data-action="trash-placeholder" data-id="${doc.id}">Cestino documenti</button>
+    </div>
     ${
       doc.driveLink && doc.driveLink !== "#"
         ? `<a class="open-file-link" href="${escapeHtml(doc.driveLink)}" target="_blank" rel="noopener noreferrer">Apri/modifica file in Drive</a>`
@@ -327,6 +347,31 @@ function rejectDocument(id) {
   updateReviewStatus([id], "rejected");
 }
 
+function saveDocumentFields(id) {
+  const doc = state.documents.find((item) => item.id === id);
+  if (!doc) return;
+  const category = document.getElementById("detailCategory")?.value || doc.category;
+  const owner = document.getElementById("detailOwner")?.value || doc.owner;
+  const visibility = document.getElementById("detailVisibility")?.value || doc.visibility;
+  doc.category = category;
+  doc.owner = owner;
+  doc.visibility = visibility;
+  state.selectedId = id;
+  render();
+  updateReviewFields(id, { category, owner, visibility });
+}
+
+function markForTrash(id) {
+  const doc = state.documents.find((item) => item.id === id);
+  if (!doc) return;
+  doc.status = "rejected";
+  doc.action = "Cestino documenti (da applicare)";
+  state.selectedId = id;
+  render();
+  updateReviewFields(id, { action: doc.action });
+  updateReviewStatus([id], "rejected");
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -341,6 +386,8 @@ document.addEventListener("click", (event) => {
   if (!(target instanceof HTMLElement)) return;
   if (target.dataset.action === "approve") approveDocument(target.dataset.id);
   if (target.dataset.action === "reject") rejectDocument(target.dataset.id);
+  if (target.dataset.action === "save-fields") saveDocumentFields(target.dataset.id);
+  if (target.dataset.action === "trash-placeholder") markForTrash(target.dataset.id);
 });
 
 document.querySelectorAll(".owner-button").forEach((button) => {
@@ -413,6 +460,21 @@ async function updateReviewStatus(ids, status) {
       body: JSON.stringify({ ids, status }),
     });
     if (!response.ok) throw new Error("Aggiornamento stato fallito");
+    await loadDashboardData();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function updateReviewFields(id, fields) {
+  if (!state.apiConnected) return;
+  try {
+    const response = await fetch(`${API_BASE}/reviews/update`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...fields }),
+    });
+    if (!response.ok) throw new Error("Aggiornamento review fallito");
     await loadDashboardData();
   } catch (error) {
     console.error(error);

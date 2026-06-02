@@ -230,6 +230,75 @@ class AiReviewTest(unittest.TestCase):
         self.assertEqual(statuses["approved"], 1)
         self.assertEqual(approved[0]["suggested_visibility"], "condiviso")
 
+    def test_updates_ai_review_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                store.record_ai_review_item(
+                    document_name="Documento.pdf",
+                    category="Varie",
+                    subcategory="",
+                    owner="Non chiaro",
+                    suggested_visibility="privato",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Da verificare",
+                    duplicate_of="",
+                    confidence="70",
+                    reason="Test",
+                    source_path="review.md",
+                )
+                item = store.ai_review_items(limit=1)[0]
+                updated = store.update_ai_review_fields(
+                    int(item["id"]),
+                    category="Casa",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
+                    recommended_action="Archivia",
+                )
+                changed = store.ai_review_items(limit=1)[0]
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(changed["category"], "Casa")
+        self.assertEqual(changed["owner"], "Davide")
+        self.assertEqual(changed["suggested_visibility"], "condiviso")
+        self.assertEqual(changed["recommended_action"], "Archivia")
+
+    def test_dedupes_ai_reviews_preserving_applied_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                for _ in range(2):
+                    store.record_ai_review_item(
+                        document_name="Documento.pdf",
+                        category="Casa",
+                        subcategory="",
+                        owner="Davide",
+                        suggested_visibility="privato",
+                        relevant_date="",
+                        deadline="",
+                        recommended_action="Archivia",
+                        duplicate_of="",
+                        confidence="99",
+                        reason="Test",
+                        source_path="review.md",
+                    )
+                items = store.ai_review_items(limit=10)
+                store.set_ai_review_status_by_ids([int(items[-1]["id"])], "applied")
+
+                dry_run_duplicates = store.dedupe_ai_review_items(dry_run=True)
+                all_before = store.ai_review_items(limit=10)
+                applied_before = store.ai_review_items(status="applied", limit=10)
+                duplicates = store.dedupe_ai_review_items(dry_run=False)
+                all_after = store.ai_review_items(limit=10)
+                applied_after = store.ai_review_items(status="applied", limit=10)
+
+        self.assertEqual(len(dry_run_duplicates), 1)
+        self.assertEqual(len(duplicates), 1)
+        self.assertEqual(len(all_before), 2)
+        self.assertEqual(len(all_after), 1)
+        self.assertEqual(applied_before[0]["id"], applied_after[0]["id"])
+
     def test_updates_normalized_ai_review_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "state.sqlite3"

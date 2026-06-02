@@ -587,6 +587,21 @@ gmail-drive-archiver normalize-ai-reviews \
   --db database/personal-archive.sqlite3
 ```
 
+Per eliminare duplicati importati per errore:
+
+```bash
+gmail-drive-archiver dedupe-ai-reviews \
+  --db database/personal-archive.sqlite3
+```
+
+Il comando sopra e un dry-run. Per rimuoverli davvero:
+
+```bash
+gmail-drive-archiver dedupe-ai-reviews \
+  --db database/personal-archive.sqlite3 \
+  --apply
+```
+
 Per approvare un gruppo di review senza spostare ancora nulla:
 
 ```bash

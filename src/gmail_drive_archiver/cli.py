@@ -331,6 +331,14 @@ def build_parser() -> argparse.ArgumentParser:
     normalize_reviews.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
     normalize_reviews.set_defaults(func=run_normalize_ai_reviews)
 
+    dedupe_reviews = subcommands.add_parser(
+        "dedupe-ai-reviews",
+        help="trova o rimuove duplicati nelle review AI importate",
+    )
+    dedupe_reviews.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
+    dedupe_reviews.add_argument("--apply", action="store_true", help="rimuove davvero i duplicati; default dry-run")
+    dedupe_reviews.set_defaults(func=run_dedupe_ai_reviews)
+
     set_review_status = subcommands.add_parser(
         "set-review-status",
         help="approva o rifiuta righe AI importate, senza spostare file",
@@ -680,6 +688,26 @@ def run_normalize_ai_reviews(args: argparse.Namespace) -> int:
 
     print(f"Review analizzate: {len(items)}")
     print(f"Review aggiornate: {updated}")
+    return 0
+
+
+def run_dedupe_ai_reviews(args: argparse.Namespace) -> int:
+    try:
+        with ProcessedStore(args.db) as store:
+            duplicates = store.dedupe_ai_review_items(dry_run=not args.apply)
+    except OSError as exc:
+        print(f"Errore dedupe review AI: {exc}", file=sys.stderr)
+        return 2
+
+    mode = "APPLY" if args.apply else "DRY-RUN"
+    print(f"[{mode}] Duplicati trovati: {len(duplicates)}")
+    if args.apply:
+        print(f"[{mode}] Duplicati rimossi: {len(duplicates)}")
+    for item in duplicates[:30]:
+        print(
+            f"[{mode}] duplicate id={item['id']} keep={item['kept_id']} "
+            f"{item['document_name']} / {item['category']} / {item['recommended_action']}"
+        )
     return 0
 
 

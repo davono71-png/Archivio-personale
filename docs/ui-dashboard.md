@@ -7,6 +7,8 @@ La dashboard e il futuro punto di controllo per l'utente.
 - vedere lo stato della pipeline documentale;
 - controllare documenti da classificare;
 - approvare o rifiutare classificazioni AI;
+- cambiare categoria, proprietario e visibilita prima dello spostamento;
+- aprire/modificare il file originale tramite link Google Drive quando disponibile;
 - vedere scadenze;
 - distinguere proprietari: Davide, Ralitza, Non chiaro;
 - distinguere visibilita: privato, condiviso;
@@ -52,7 +54,8 @@ tabelle piu larghe, ma layout e filtri sono gia adattati a schermi piccoli.
 2. Migrare da SQLite a PostgreSQL/Supabase quando il modello dati sara stabile.
 3. Mostrare log degli errori di spostamento.
 4. Eseguire spostamenti solo dopo conferma esplicita.
-5. Integrare ricerca AnythingLLM o rimando al workspace.
+5. Implementare "Cestino documenti" come spostamento controllato verso una cartella dedicata.
+6. Integrare ricerca AnythingLLM o rimando al workspace.
 
 La versione attuale usa una API leggera in Python standard library:
 

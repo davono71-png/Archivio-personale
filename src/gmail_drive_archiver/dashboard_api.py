@@ -92,6 +92,22 @@ def _handler_factory(db_path: Path, inventory_path: Path):
                 except (ValueError, json.JSONDecodeError) as exc:
                     self._send_json({"error": str(exc)}, status=400)
                 return
+            if parsed.path == "/api/reviews/update":
+                try:
+                    payload = self._read_json()
+                    review_id = int(payload.get("id"))
+                    with ProcessedStore(db_path) as store:
+                        updated = store.update_ai_review_fields(
+                            review_id,
+                            category=_optional_payload_value(payload, "category"),
+                            owner=_optional_payload_value(payload, "owner"),
+                            suggested_visibility=_optional_payload_value(payload, "visibility"),
+                            recommended_action=_optional_payload_value(payload, "action"),
+                        )
+                    self._send_json({"updated": updated})
+                except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                    self._send_json({"error": str(exc)}, status=400)
+                return
             self._send_json({"error": "not_found"}, status=404)
 
         def log_message(self, format: str, *args) -> None:  # noqa: A002
@@ -161,6 +177,13 @@ def _first(query: dict[str, list[str]], key: str) -> str | None:
         return None
     value = values[0]
     return value if value and value != "Tutti" and value != "Tutte" else None
+
+
+def _optional_payload_value(payload: dict, key: str) -> str | None:
+    if key not in payload:
+        return None
+    value = payload.get(key)
+    return "" if value is None else str(value)
 
 
 def _load_inventory_index(path: Path) -> dict[str, InventoryItem]:

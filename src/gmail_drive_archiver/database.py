@@ -74,6 +74,22 @@ CREATE TABLE IF NOT EXISTS ai_review_items (
 """
 
 
+def _dedupe_keep_item(items: list[dict[str, str]]) -> dict[str, str]:
+    status_priority = {
+        "applied": 0,
+        "approved": 1,
+        "pending": 2,
+        "rejected": 3,
+    }
+    return sorted(
+        items,
+        key=lambda item: (
+            status_priority.get(item.get("review_status", ""), 9),
+            -int(item["id"]),
+        ),
+    )[0]
+
+
 class ProcessedStore:
     """SQLite-backed state used to avoid processing the same item twice."""
 
@@ -313,6 +329,97 @@ class ProcessedStore:
                 [status, *ids],
             )
         return cursor.rowcount
+
+    def update_ai_review_fields(
+        self,
+        review_id: int,
+        category: str | None = None,
+        owner: str | None = None,
+        suggested_visibility: str | None = None,
+        recommended_action: str | None = None,
+    ) -> int:
+        updates: list[str] = []
+        params: list[object] = []
+        for column, value in (
+            ("category", category),
+            ("owner", owner),
+            ("suggested_visibility", suggested_visibility),
+            ("recommended_action", recommended_action),
+        ):
+            if value is not None:
+                updates.append(f"{column} = ?")
+                params.append(value)
+
+        if not updates:
+            return 0
+
+        params.append(review_id)
+        with self._connection:
+            cursor = self._connection.execute(
+                f"""
+                UPDATE ai_review_items
+                SET {", ".join(updates)}
+                WHERE id = ?
+                """,
+                params,
+            )
+        return cursor.rowcount
+
+    def dedupe_ai_review_items(self, dry_run: bool = True) -> list[dict[str, str]]:
+        rows = self._connection.execute(
+            """
+            SELECT
+                id,
+                document_name,
+                category,
+                recommended_action,
+                review_status,
+                imported_at
+            FROM ai_review_items
+            ORDER BY id ASC
+            """
+        ).fetchall()
+
+        grouped: dict[tuple[str, str, str], list[dict[str, str]]] = {}
+        for row in rows:
+            item = {
+                "id": str(row[0]),
+                "document_name": "" if row[1] is None else str(row[1]),
+                "category": "" if row[2] is None else str(row[2]),
+                "recommended_action": "" if row[3] is None else str(row[3]),
+                "review_status": "" if row[4] is None else str(row[4]),
+                "imported_at": "" if row[5] is None else str(row[5]),
+            }
+            key = (
+                item["document_name"].casefold().strip(),
+                item["category"].casefold().strip(),
+                item["recommended_action"].casefold().strip(),
+            )
+            grouped.setdefault(key, []).append(item)
+
+        duplicates: list[dict[str, str]] = []
+        delete_ids: list[int] = []
+        for items in grouped.values():
+            if len(items) <= 1:
+                continue
+            kept = _dedupe_keep_item(items)
+            for item in items:
+                if item["id"] == kept["id"]:
+                    continue
+                duplicate = dict(item)
+                duplicate["kept_id"] = kept["id"]
+                duplicates.append(duplicate)
+                delete_ids.append(int(item["id"]))
+
+        if delete_ids and not dry_run:
+            placeholders = ",".join("?" for _item in delete_ids)
+            with self._connection:
+                self._connection.execute(
+                    f"DELETE FROM ai_review_items WHERE id IN ({placeholders})",
+                    delete_ids,
+                )
+
+        return duplicates
 
     def update_ai_review_normalized_fields(
         self,

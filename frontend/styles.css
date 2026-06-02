@@ -482,6 +482,23 @@ tr[data-id]:hover {
   padding: 10px 12px;
 }
 
+.edit-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.edit-grid label {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.edit-grid select,
+.edit-grid button {
+  width: 100%;
+}
+
 .open-file-link {
   background: var(--dark);
   border-radius: 14px;
