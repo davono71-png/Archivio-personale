@@ -55,6 +55,29 @@ class ReviewMovesTest(unittest.TestCase):
         self.assertEqual(unmatched[0].status, "not_found")
         self.assertEqual(ambiguous[0].status, "ambiguous")
 
+    def test_matches_exported_anythingllm_filename_by_drive_id(self) -> None:
+        drive_id = "1xC1kTTSnm-NsQW5kk4I0U7BiS0rvEnl9"
+        moves = build_review_moves(
+            [
+                {
+                    "id": "9",
+                    "document_name": f"Lavoro__Fornitura_e_posa_in_opera_di_cancello-{drive_id}.txt",
+                    "category": "Lavoro",
+                }
+            ],
+            [
+                InventoryItem(
+                    id=drive_id,
+                    name="Fornitura e posa in opera di cancello scorrevole Dim.docx",
+                    mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            ],
+            {"Lavoro": "folder-work"},
+        )
+
+        self.assertEqual(moves[0].status, "planned")
+        self.assertEqual(moves[0].drive_file_id, drive_id)
+
 
 if __name__ == "__main__":
     unittest.main()

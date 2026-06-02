@@ -55,6 +55,28 @@ class DashboardApiTest(unittest.TestCase):
         self.assertEqual(payload["driveFileId"], "drive-1")
         self.assertEqual(payload["driveLink"], "https://drive.google.com/file/d/drive-1/view")
 
+    def test_review_payload_matches_exported_filename_by_drive_id(self) -> None:
+        drive_id = "1xC1kTTSnm-NsQW5kk4I0U7BiS0rvEnl9"
+        payload = _review_payload(
+            {
+                "id": "12",
+                "document_name": f"Lavoro__Fornitura-{drive_id}.txt",
+                "category": "Lavoro",
+                "review_status": "pending",
+            },
+            {
+                drive_id: InventoryItem(
+                    id=drive_id,
+                    name="Fornitura e posa in opera di cancello scorrevole Dim.docx",
+                    mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    web_view_link=f"https://drive.google.com/file/d/{drive_id}/view",
+                )
+            },
+        )
+
+        self.assertEqual(payload["driveFileId"], drive_id)
+        self.assertEqual(payload["driveLink"], f"https://drive.google.com/file/d/{drive_id}/view")
+
     def test_anythingllm_search_reports_missing_configuration(self) -> None:
         result = _anythingllm_search("http://anythingllm:3001", "", "", "test")
 

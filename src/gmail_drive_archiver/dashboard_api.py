@@ -268,16 +268,19 @@ def _load_inventory_index(path: Path) -> dict[str, InventoryItem]:
         return {}
     index: dict[str, InventoryItem] = {}
     for item in items:
-        for key in {_normalize_name(item.name), _normalize_name(Path(item.name).stem)}:
+        for key in {item.id, _normalize_name(item.id), _normalize_name(item.name), _normalize_name(Path(item.name).stem)}:
             if key:
                 index.setdefault(key, item)
     return index
 
 
 def _find_inventory_item(document_name: str, inventory_index: dict[str, InventoryItem]) -> InventoryItem | None:
-    for key in (_normalize_name(document_name), _normalize_name(Path(document_name).stem)):
+    for key in (document_name, _normalize_name(document_name), _normalize_name(Path(document_name).stem), *_possible_drive_ids(document_name)):
         if key in inventory_index:
             return inventory_index[key]
+    for key, item in inventory_index.items():
+        if len(key) >= 20 and key in document_name:
+            return item
     return None
 
 
@@ -286,6 +289,16 @@ def _normalize_name(value: str) -> str:
     normalized = re.sub(r"\.[a-z0-9]{1,8}$", "", normalized)
     normalized = re.sub(r"[^0-9a-zà-öø-ÿ]+", " ", normalized)
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _possible_drive_ids(value: str) -> list[str]:
+    stem = Path(value).stem
+    matches = re.findall(r"([A-Za-z0-9_-]{20,})", stem)
+    keys: list[str] = []
+    for match in matches:
+        keys.append(match)
+        keys.append(_normalize_name(match))
+    return keys
 
 
 def _drive_link(file_id: str) -> str:

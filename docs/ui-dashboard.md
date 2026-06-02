@@ -75,6 +75,10 @@ Se l'inventario e disponibile, la UI associa le review ai link Drive e il nome d
 cliccabile. Il link apre Google Drive in una nuova scheda, dove l'utente puo visionare o
 modificare il file secondo i propri permessi Google.
 
+Nota: la tabella principale mostra le **review AI importate nel database**, non l'elenco live
+della cartella Drive "Da Classificare". Il collegamento al file originale avviene usando
+l'inventario CSV e, quando presente, l'ID Drive incorporato nel nome esportato per AnythingLLM.
+
 Azioni operative disponibili:
 
 - modifica categoria/proprietario/visibilita dalla riga o dal dettaglio;

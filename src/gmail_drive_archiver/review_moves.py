@@ -100,7 +100,12 @@ def apply_review_move(service, move: ReviewMove) -> None:  # type: ignore[no-unt
 def _inventory_index(inventory_items: list[InventoryItem]) -> dict[str, list[InventoryItem]]:
     index: dict[str, list[InventoryItem]] = {}
     for item in inventory_items:
-        keys = {_normalize_name(item.name), _normalize_name(Path(item.name).stem)}
+        keys = {
+            item.id,
+            _normalize_name(item.id),
+            _normalize_name(item.name),
+            _normalize_name(Path(item.name).stem),
+        }
         for key in keys:
             if key:
                 index.setdefault(key, []).append(item)
@@ -108,10 +113,18 @@ def _inventory_index(inventory_items: list[InventoryItem]) -> dict[str, list[Inv
 
 
 def _match_inventory_items(document_name: str, index: dict[str, list[InventoryItem]]) -> list[InventoryItem]:
-    keys = [_normalize_name(document_name), _normalize_name(Path(document_name).stem)]
+    keys = [
+        document_name,
+        _normalize_name(document_name),
+        _normalize_name(Path(document_name).stem),
+        *_possible_drive_ids(document_name),
+    ]
     for key in keys:
         if key in index:
             return index[key]
+    for key, matches in index.items():
+        if len(key) >= 20 and key in document_name:
+            return matches
     return []
 
 
@@ -120,3 +133,13 @@ def _normalize_name(value: str) -> str:
     normalized = re.sub(r"\.[a-z0-9]{1,8}$", "", normalized)
     normalized = re.sub(r"[^0-9a-zà-öø-ÿ]+", " ", normalized)
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _possible_drive_ids(value: str) -> list[str]:
+    stem = Path(value).stem
+    matches = re.findall(r"([A-Za-z0-9_-]{20,})", stem)
+    keys: list[str] = []
+    for match in matches:
+        keys.append(match)
+        keys.append(_normalize_name(match))
+    return keys
