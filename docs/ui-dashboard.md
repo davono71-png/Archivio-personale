@@ -14,13 +14,14 @@ La dashboard e il futuro punto di controllo per l'utente.
 
 ## Stato attuale
 
-La prima versione e statica e si trova in:
+La prima versione si trova in:
 
 ```text
 frontend/
 ```
 
-Serve per validare UX e layout prima di sviluppare backend/API.
+La UI legge dati reali da SQLite tramite una API leggera, ma mantiene fallback con dati demo se
+l'API non risponde.
 
 ## Avvio
 
@@ -42,8 +43,8 @@ http://IP_DELLA_VPS:8080
 
 ## Note mobile
 
-Su smartphone puo essere utile aprire il sito in modalita desktop. La dashboard mantiene una
-larghezza minima per preservare la tabella documenti.
+La dashboard e responsive. Su smartphone resta utile provare anche la modalita desktop per le
+tabelle piu larghe, ma layout e filtri sono gia adattati a schermi piccoli.
 
 ## Evoluzione prevista
 

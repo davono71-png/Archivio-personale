@@ -54,6 +54,8 @@ Cartella finale
 
 Dettagli: `docs/architecture.md`.
 
+Roadmap operativa: `docs/roadmap.md`.
+
 ## Componenti inclusi
 
 - **Docker Compose** con n8n e PostgreSQL per lo stato interno di n8n.

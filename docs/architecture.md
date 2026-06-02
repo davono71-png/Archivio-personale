@@ -41,9 +41,8 @@ Cartella finale
 
 ## Percorso evolutivo
 
-1. usare la CLI per validare OAuth, Gmail API, Drive API e regole;
-2. collegare n8n agli stessi file `config/`;
-3. aggiungere download allegati e salvataggio in "Da Classificare";
-4. integrare OCR e classificazione AI;
-5. consolidare il database applicativo;
-6. migrare lo stack da VPS a mini PC copiando repository e volumi necessari.
+La roadmap operativa aggiornata e in:
+
+```text
+docs/roadmap.md
+```
