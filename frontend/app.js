@@ -1,3 +1,107 @@
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:8090/api`;
+
+const mockDocuments = [
+  {
+    id: "rev-001",
+    title: "POS_pagina_iniziale_con_nuova_firma.docx",
+    category: "Lavoro",
+    subcategory: "Sicurezza cantiere",
+    owner: "Davide",
+    visibility: "condiviso",
+    confidence: 98,
+    status: "pending",
+    action: "Verificare e completare la firma",
+    source: "AnythingLLM / GPT mini",
+    driveLink: "#",
+    reason: "Documento operativo per sicurezza e controlli con data e firme da completare.",
+  },
+  {
+    id: "rev-002",
+    title: "Fornitura e posa in opera di cancello scorrevole Dim.docx",
+    category: "Lavoro",
+    subcategory: "Preventivo / Specifica tecnica",
+    owner: "Davide",
+    visibility: "condiviso",
+    confidence: 100,
+    status: "approved",
+    action: "Verificare specifiche tecniche e materiali",
+    source: "AnythingLLM / GPT mini",
+    driveLink: "#",
+    reason: "Documento tecnico che descrive materiali e lavorazioni legate all'azienda.",
+  },
+  {
+    id: "rev-003",
+    title: "Scadenza Bolletta.ics",
+    category: "Casa",
+    subcategory: "Bolletta energia",
+    owner: "Davide",
+    visibility: "condiviso",
+    confidence: 100,
+    status: "approved",
+    action: "Archivia",
+    deadline: "24/04/2026",
+    source: "Drive / calendario",
+    driveLink: "#",
+    reason: "Promemoria per pagamento bolletta Eni: documento di Davide condiviso con Ralitza.",
+  },
+  {
+    id: "rev-004",
+    title: "Garanzia Onofri & C.doc",
+    category: "Garanzie",
+    subcategory: "Fideiussione affitto",
+    owner: "Davide",
+    visibility: "condiviso",
+    confidence: 100,
+    status: "approved",
+    action: "Archivia",
+    source: "AnythingLLM / GPT mini",
+    driveLink: "#",
+    reason: "Atto di fideiussione in cui familiari si costituiscono garanti per un contratto.",
+  },
+  {
+    id: "rev-005",
+    title: "piano_pasti_settimanale.docx",
+    category: "Alimentazione",
+    subcategory: "Piano nutrizionale",
+    owner: "Davide",
+    visibility: "privato",
+    confidence: 100,
+    status: "applied",
+    action: "Archivia",
+    source: "Drive",
+    driveLink: "#",
+    reason: "Piano alimentare dettagliato intestato a Davide Onofri.",
+  },
+  {
+    id: "rev-006",
+    title: "MODULO-AUTOCERTIFICAZIONE-ASSENZA-CONDANNE-PENALI 2.doc",
+    category: "Lavoro",
+    subcategory: "Modulo autocertificazione",
+    owner: "Non chiaro",
+    visibility: "privato",
+    confidence: 90,
+    status: "pending",
+    action: "Da verificare",
+    source: "AnythingLLM / GPT mini",
+    driveLink: "#",
+    reason: "Modulo in bianco spesso usato in contesti lavorativi; proprietario non chiaro.",
+  },
+  {
+    id: "rev-007",
+    title: "index.html",
+    category: "Varie",
+    subcategory: "File tecnico",
+    owner: "Non chiaro",
+    visibility: "privato",
+    confidence: 50,
+    status: "rejected",
+    action: "Ignora",
+    source: "Drive",
+    driveLink: "#",
+    reason: "File tecnico residuale con contenuto minimo, non utile per archivio documentale.",
+  },
+];
+
 const state = {
   owner: "Tutti",
   category: "Tutte",
@@ -5,107 +109,9 @@ const state = {
   visibility: "Tutte",
   query: "",
   selectedId: null,
-  documents: [
-    {
-      id: "rev-001",
-      title: "POS_pagina_iniziale_con_nuova_firma.docx",
-      category: "Lavoro",
-      subcategory: "Sicurezza cantiere",
-      owner: "Davide",
-      visibility: "condiviso",
-      confidence: 98,
-      status: "pending",
-      action: "Verificare e completare la firma",
-      source: "AnythingLLM / GPT mini",
-      driveLink: "#",
-      reason: "Documento operativo per sicurezza e controlli con data e firme da completare.",
-    },
-    {
-      id: "rev-002",
-      title: "Fornitura e posa in opera di cancello scorrevole Dim.docx",
-      category: "Lavoro",
-      subcategory: "Preventivo / Specifica tecnica",
-      owner: "Davide",
-      visibility: "condiviso",
-      confidence: 100,
-      status: "approved",
-      action: "Verificare specifiche tecniche e materiali",
-      source: "AnythingLLM / GPT mini",
-      driveLink: "#",
-      reason: "Documento tecnico che descrive materiali e lavorazioni legate all'azienda.",
-    },
-    {
-      id: "rev-003",
-      title: "Scadenza Bolletta.ics",
-      category: "Casa",
-      subcategory: "Bolletta energia",
-      owner: "Davide",
-      visibility: "condiviso",
-      confidence: 100,
-      status: "approved",
-      action: "Archivia",
-      deadline: "24/04/2026",
-      source: "Drive / calendario",
-      driveLink: "#",
-      reason: "Promemoria per pagamento bolletta Eni: documento di Davide condiviso con Ralitza.",
-    },
-    {
-      id: "rev-004",
-      title: "Garanzia Onofri & C.doc",
-      category: "Garanzie",
-      subcategory: "Fideiussione affitto",
-      owner: "Davide",
-      visibility: "condiviso",
-      confidence: 100,
-      status: "approved",
-      action: "Archivia",
-      source: "AnythingLLM / GPT mini",
-      driveLink: "#",
-      reason: "Atto di fideiussione in cui familiari si costituiscono garanti per un contratto.",
-    },
-    {
-      id: "rev-005",
-      title: "piano_pasti_settimanale.docx",
-      category: "Alimentazione",
-      subcategory: "Piano nutrizionale",
-      owner: "Davide",
-      visibility: "privato",
-      confidence: 100,
-      status: "applied",
-      action: "Archivia",
-      source: "Drive",
-      driveLink: "#",
-      reason: "Piano alimentare dettagliato intestato a Davide Onofri.",
-    },
-    {
-      id: "rev-006",
-      title: "MODULO-AUTOCERTIFICAZIONE-ASSENZA-CONDANNE-PENALI 2.doc",
-      category: "Lavoro",
-      subcategory: "Modulo autocertificazione",
-      owner: "Non chiaro",
-      visibility: "privato",
-      confidence: 90,
-      status: "pending",
-      action: "Da verificare",
-      source: "AnythingLLM / GPT mini",
-      driveLink: "#",
-      reason: "Modulo in bianco spesso usato in contesti lavorativi; proprietario non chiaro.",
-    },
-    {
-      id: "rev-007",
-      title: "index.html",
-      category: "Varie",
-      subcategory: "File tecnico",
-      owner: "Non chiaro",
-      visibility: "privato",
-      confidence: 50,
-      status: "rejected",
-      action: "Ignora",
-      source: "Drive",
-      driveLink: "#",
-      reason: "File tecnico residuale con contenuto minimo, non utile per archivio documentale.",
-    },
-  ],
+  documents: [...mockDocuments],
+  summary: null,
+  apiConnected: false,
   pipeline: [
     { label: "Inventario Drive", detail: "500 file mappati", done: true },
     { label: "Download locale", detail: "200 file scaricati", done: true },
@@ -154,10 +160,11 @@ function filteredDocuments() {
 
 function renderStats() {
   const docs = state.documents;
-  document.getElementById("statInbox").textContent = "500";
-  document.getElementById("statExtracted").textContent = "42";
-  document.getElementById("statOcr").textContent = "158";
-  document.getElementById("statReviews").textContent = docs.length.toString();
+  const statusCounts = state.summary?.status_counts || {};
+  document.getElementById("statInbox").textContent = state.apiConnected ? String(statusCounts.pending || 0) : "500";
+  document.getElementById("statExtracted").textContent = state.apiConnected ? String(docs.length) : "42";
+  document.getElementById("statOcr").textContent = state.apiConnected ? "—" : "158";
+  document.getElementById("statReviews").textContent = state.apiConnected ? String(state.summary?.total || docs.length) : docs.length.toString();
 }
 
 function renderCategoryFilter() {
@@ -300,6 +307,7 @@ function approveDocument(id) {
   doc.status = "approved";
   state.selectedId = id;
   render();
+  updateReviewStatus([id], "approved");
 }
 
 function rejectDocument(id) {
@@ -308,6 +316,7 @@ function rejectDocument(id) {
   doc.status = "rejected";
   state.selectedId = id;
   render();
+  updateReviewStatus([id], "rejected");
 }
 
 function escapeHtml(value) {
@@ -362,7 +371,62 @@ document.getElementById("clearSearch").addEventListener("click", () => {
 });
 
 document.getElementById("refreshButton").addEventListener("click", () => {
-  render();
+  loadDashboardData();
 });
 
-render();
+async function loadDashboardData() {
+  try {
+    const [reviewsResponse, summaryResponse] = await Promise.all([
+      fetch(`${API_BASE}/reviews?limit=500`, { cache: "no-store" }),
+      fetch(`${API_BASE}/summary`, { cache: "no-store" }),
+    ]);
+    if (!reviewsResponse.ok || !summaryResponse.ok) throw new Error("API non disponibile");
+    const reviewsPayload = await reviewsResponse.json();
+    const summaryPayload = await summaryResponse.json();
+    state.documents = (reviewsPayload.items || []).map(normalizeApiReview);
+    state.summary = summaryPayload;
+    state.apiConnected = true;
+  } catch (error) {
+    console.warn("Uso dati mock dashboard:", error);
+    state.documents = [...mockDocuments];
+    state.summary = null;
+    state.apiConnected = false;
+  }
+  state.selectedId = null;
+  render();
+}
+
+async function updateReviewStatus(ids, status) {
+  if (!state.apiConnected) return;
+  try {
+    const response = await fetch(`${API_BASE}/reviews/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, status }),
+    });
+    if (!response.ok) throw new Error("Aggiornamento stato fallito");
+    await loadDashboardData();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function normalizeApiReview(item) {
+  return {
+    id: item.id,
+    title: item.title || "Senza titolo",
+    category: item.category || "Varie",
+    subcategory: item.subcategory || "",
+    owner: item.owner || "Non chiaro",
+    visibility: item.visibility || "privato",
+    confidence: item.confidence ?? "",
+    status: item.status || "pending",
+    action: item.action || "",
+    deadline: item.deadline || "",
+    source: item.source || "SQLite review AI",
+    driveLink: item.driveLink || "#",
+    reason: item.reason || "",
+  };
+}
+
+loadDashboardData();

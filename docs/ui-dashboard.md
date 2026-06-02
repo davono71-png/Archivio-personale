@@ -25,7 +25,7 @@ Serve per validare UX e layout prima di sviluppare backend/API.
 ## Avvio
 
 ```bash
-docker compose --profile ui up -d dashboard
+docker compose --profile ui up -d dashboard dashboard-api
 ```
 
 Locale:
@@ -47,9 +47,16 @@ larghezza minima per preservare la tabella documenti.
 
 ## Evoluzione prevista
 
-1. Sostituire i dati mock con API FastAPI.
-2. Leggere `ai_review_items` da SQLite/PostgreSQL.
-3. Aggiungere conferma/rifiuto reale delle review.
-4. Mostrare dry-run spostamenti Drive.
-5. Eseguire spostamenti solo dopo conferma esplicita.
-6. Integrare ricerca AnythingLLM o rimando al workspace.
+1. Estendere l'API leggera con dry-run spostamenti Drive.
+2. Migrare da SQLite a PostgreSQL/Supabase quando il modello dati sara stabile.
+3. Mostrare log degli errori di spostamento.
+4. Eseguire spostamenti solo dopo conferma esplicita.
+5. Integrare ricerca AnythingLLM o rimando al workspace.
+
+La versione attuale usa una API leggera in Python standard library:
+
+```text
+http://HOST:8090/api
+```
+
+Se l'API non risponde, la UI usa dati dimostrativi.

@@ -97,6 +97,18 @@ services:
     volumes:
       - ./frontend:/usr/share/nginx/html:ro
 
+  dashboard-api:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: personal-archive-dashboard-api
+    profiles: ["ui"]
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_API_PORT:-8090}:8090"
+    volumes:
+      - ./database:/workspace/database
+
 volumes:
   n8n-data:
   postgres-data:

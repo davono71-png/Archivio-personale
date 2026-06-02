@@ -153,6 +153,33 @@ class AiReviewTest(unittest.TestCase):
         self.assertEqual(len(approved), 1)
         self.assertEqual(approved[0]["document_name"], "POS.docx")
 
+    def test_sets_ai_review_status_by_ids_and_lists_all_reviews(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                store.record_ai_review_item(
+                    document_name="POS.docx",
+                    category="Lavoro",
+                    subcategory="Sicurezza",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Archivia",
+                    duplicate_of="",
+                    confidence="99",
+                    reason="Documento operativo",
+                    source_path="review.md",
+                )
+                item = store.ai_review_items(limit=1)[0]
+                updated = store.set_ai_review_status_by_ids([int(item["id"])], "approved")
+                statuses = dict(store.ai_review_status_counts())
+                approved = store.ai_review_items(status="approved", limit=10)
+
+        self.assertEqual(updated, 1)
+        self.assertEqual(statuses["approved"], 1)
+        self.assertEqual(approved[0]["suggested_visibility"], "condiviso")
+
     def test_marks_ai_review_as_applied(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "state.sqlite3"

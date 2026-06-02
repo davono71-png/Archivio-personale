@@ -96,6 +96,7 @@ OLLAMA_PORT=11434
 OLLAMA_BASE_PATH=http://ollama:11434
 OLLAMA_MODEL_PREF=llama3.2:3b
 DASHBOARD_PORT=8080
+DASHBOARD_API_PORT=8090
 TZ=Europe/Rome
 ```
 
@@ -133,7 +134,7 @@ La dashboard e un prototipo statico per visualizzare stato pipeline, review AI, 
 azioni utente.
 
 ```bash
-docker compose --profile ui up -d dashboard
+docker compose --profile ui up -d dashboard dashboard-api
 ```
 
 Apri:
@@ -149,6 +150,12 @@ http://IP_DELLA_VPS:8080
 ```
 
 Dettagli: `docs/ui-dashboard.md`.
+
+Su VPS apri anche la porta API:
+
+```bash
+ufw allow 8090/tcp
+```
 
 ### Uso con Ollama locale
 

@@ -299,6 +299,99 @@ class ProcessedStore:
             )
         return cursor.rowcount
 
+    def set_ai_review_status_by_ids(self, ids: list[int], status: str) -> int:
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _item in ids)
+        with self._connection:
+            cursor = self._connection.execute(
+                f"""
+                UPDATE ai_review_items
+                SET review_status = ?
+                WHERE id IN ({placeholders})
+                """,
+                [status, *ids],
+            )
+        return cursor.rowcount
+
+    def ai_review_status_counts(self) -> list[tuple[str, int]]:
+        with closing(
+            self._connection.execute(
+                """
+                SELECT COALESCE(NULLIF(review_status, ''), 'Senza stato') AS status, COUNT(*) AS count
+                FROM ai_review_items
+                GROUP BY COALESCE(NULLIF(review_status, ''), 'Senza stato')
+                ORDER BY count DESC, status ASC
+                """
+            )
+        ) as cursor:
+            return [(str(row[0]), int(row[1])) for row in cursor.fetchall()]
+
+    def ai_review_items(
+        self,
+        status: str | None = None,
+        category: str | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, str]]:
+        filters: list[str] = []
+        params: list[object] = []
+        if status:
+            filters.append("review_status = ?")
+            params.append(status)
+        if category:
+            filters.append("category = ?")
+            params.append(category)
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
+        params.append(limit)
+
+        with closing(
+            self._connection.execute(
+                f"""
+                SELECT
+                    id,
+                    document_name,
+                    category,
+                    subcategory,
+                    owner,
+                    suggested_visibility,
+                    relevant_date,
+                    deadline,
+                    recommended_action,
+                    duplicate_of,
+                    confidence,
+                    reason,
+                    review_status,
+                    drive_file_id,
+                    target_folder_id
+                FROM ai_review_items
+                {where_clause}
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                params,
+            )
+        ) as cursor:
+            rows = cursor.fetchall()
+
+        keys = [
+            "id",
+            "document_name",
+            "category",
+            "subcategory",
+            "owner",
+            "suggested_visibility",
+            "relevant_date",
+            "deadline",
+            "recommended_action",
+            "duplicate_of",
+            "confidence",
+            "reason",
+            "review_status",
+            "drive_file_id",
+            "target_folder_id",
+        ]
+        return [{key: "" if value is None else str(value) for key, value in zip(keys, row)} for row in rows]
+
     def ai_review_items_for_status(self, status: str = "approved") -> list[dict[str, str]]:
         with closing(
             self._connection.execute(
