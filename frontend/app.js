@@ -2,6 +2,7 @@ const state = {
   owner: "Tutti",
   category: "Tutte",
   status: "Tutti",
+  visibility: "Tutte",
   query: "",
   selectedId: null,
   documents: [
@@ -10,7 +11,8 @@ const state = {
       title: "POS_pagina_iniziale_con_nuova_firma.docx",
       category: "Lavoro",
       subcategory: "Sicurezza cantiere",
-      owner: "Azienda/Lavoro",
+      owner: "Davide",
+      visibility: "condiviso",
       confidence: 98,
       status: "pending",
       action: "Verificare e completare la firma",
@@ -23,7 +25,8 @@ const state = {
       title: "Fornitura e posa in opera di cancello scorrevole Dim.docx",
       category: "Lavoro",
       subcategory: "Preventivo / Specifica tecnica",
-      owner: "Azienda/Lavoro",
+      owner: "Davide",
+      visibility: "condiviso",
       confidence: 100,
       status: "approved",
       action: "Verificare specifiche tecniche e materiali",
@@ -36,21 +39,23 @@ const state = {
       title: "Scadenza Bolletta.ics",
       category: "Casa",
       subcategory: "Bolletta energia",
-      owner: "Famiglia",
+      owner: "Davide",
+      visibility: "condiviso",
       confidence: 100,
       status: "approved",
       action: "Archivia",
       deadline: "24/04/2026",
       source: "Drive / calendario",
       driveLink: "#",
-      reason: "Promemoria per pagamento bolletta Eni presso indirizzo familiare.",
+      reason: "Promemoria per pagamento bolletta Eni: documento di Davide condiviso con Ralitza.",
     },
     {
       id: "rev-004",
       title: "Garanzia Onofri & C.doc",
       category: "Garanzie",
       subcategory: "Fideiussione affitto",
-      owner: "Famiglia",
+      owner: "Davide",
+      visibility: "condiviso",
       confidence: 100,
       status: "approved",
       action: "Archivia",
@@ -64,6 +69,7 @@ const state = {
       category: "Alimentazione",
       subcategory: "Piano nutrizionale",
       owner: "Davide",
+      visibility: "privato",
       confidence: 100,
       status: "applied",
       action: "Archivia",
@@ -77,6 +83,7 @@ const state = {
       category: "Lavoro",
       subcategory: "Modulo autocertificazione",
       owner: "Non chiaro",
+      visibility: "privato",
       confidence: 90,
       status: "pending",
       action: "Da verificare",
@@ -90,6 +97,7 @@ const state = {
       category: "Varie",
       subcategory: "File tecnico",
       owner: "Non chiaro",
+      visibility: "privato",
       confidence: 50,
       status: "rejected",
       action: "Ignora",
@@ -137,9 +145,10 @@ function filteredDocuments() {
     const matchesOwner = state.owner === "Tutti" || doc.owner === state.owner;
     const matchesCategory = state.category === "Tutte" || doc.category === state.category;
     const matchesStatus = state.status === "Tutti" || doc.status === state.status;
+    const matchesVisibility = state.visibility === "Tutte" || doc.visibility === state.visibility;
     const haystack = [doc.title, doc.category, doc.subcategory, doc.owner, doc.action, doc.reason].join(" ").toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
-    return matchesOwner && matchesCategory && matchesStatus && matchesQuery;
+    return matchesOwner && matchesCategory && matchesStatus && matchesVisibility && matchesQuery;
   });
 }
 
@@ -184,6 +193,7 @@ function renderDocuments() {
       <td>${escapeHtml(doc.category)}</td>
       <td>${escapeHtml(doc.owner)}</td>
       <td>${doc.confidence}%</td>
+      <td>${escapeHtml(doc.visibility || "privato")}</td>
       <td><span class="badge ${doc.status}">${statusLabels[doc.status]}</span></td>
       <td>
         <div class="action-buttons">
@@ -268,6 +278,7 @@ function renderDetail() {
   meta.innerHTML = `
     <div><strong>Categoria:</strong> ${escapeHtml(doc.category)} / ${escapeHtml(doc.subcategory)}</div>
     <div><strong>Proprietario:</strong> ${escapeHtml(doc.owner)}</div>
+    <div><strong>Visibilita:</strong> ${escapeHtml(doc.visibility || "privato")}</div>
     <div><strong>Azione:</strong> ${escapeHtml(doc.action)}</div>
     <div><strong>Confidenza:</strong> ${doc.confidence}%</div>
   `;
@@ -331,6 +342,11 @@ document.getElementById("categoryFilter").addEventListener("change", (event) => 
 
 document.getElementById("statusFilter").addEventListener("change", (event) => {
   state.status = event.target.value;
+  render();
+});
+
+document.getElementById("visibilityFilter").addEventListener("change", (event) => {
+  state.visibility = event.target.value;
   render();
 });
 

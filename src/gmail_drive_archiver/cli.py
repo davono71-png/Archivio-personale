@@ -538,6 +538,7 @@ def run_import_ai_review(args: argparse.Namespace) -> int:
                         category=item.category,
                         subcategory=item.subcategory,
                         owner=item.owner,
+                        suggested_visibility=item.suggested_visibility,
                         relevant_date=item.relevant_date,
                         deadline=item.deadline,
                         recommended_action=item.recommended_action,
@@ -919,7 +920,8 @@ def _print_review_summary(
     for item in latest_items:
         print(
             f"  - {item['document_name']}: {item['category']} / "
-            f"{item['recommended_action']} conf={item['confidence']}"
+            f"{item['recommended_action']} owner={item.get('owner', '')} "
+            f"vis={item.get('suggested_visibility', '')} conf={item['confidence']}"
         )
         if item["reason"]:
             print(f"    {item['reason']}")

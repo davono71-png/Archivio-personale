@@ -36,9 +36,9 @@ class AiReviewTest(unittest.TestCase):
             csv_path = Path(tmpdir) / "review.csv"
             review_path.write_text(
                 """
-| Nome documento | Categoria principale | Sottocategoria proposta | Proprietario probabile | Data rilevante | Scadenza | Azione consigliata | Duplicato di | Confidenza | Motivo sintetico |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Garanzia Onofri & C.doc | Garanzie | Fideiussione Affitto | Famiglia | Non presente | Non presente | Archivia | | 100 | Atto di fideiussione |
+| Nome documento | Categoria principale | Sottocategoria proposta | Proprietario probabile | Visibilita suggerita | Data rilevante | Scadenza | Azione consigliata | Duplicato di | Confidenza | Motivo sintetico |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Garanzia Onofri & C.doc | Garanzie | Fideiussione Affitto | Davide | condiviso | Non presente | Non presente | Archivia | | 100 | Atto di fideiussione |
 """,
                 encoding="utf-8",
             )
@@ -51,6 +51,7 @@ class AiReviewTest(unittest.TestCase):
             csv_content = csv_path.read_text(encoding="utf-8")
 
         self.assertEqual(payload[0]["subcategory"], "Fideiussione Affitto")
+        self.assertEqual(payload[0]["suggested_visibility"], "condiviso")
         self.assertIn("Garanzia Onofri", csv_content)
 
     def test_records_ai_review_items_in_database(self) -> None:
@@ -61,7 +62,8 @@ class AiReviewTest(unittest.TestCase):
                     document_name="Bolletta Eni",
                     category="Casa",
                     subcategory="Bolletta Energia",
-                    owner="Famiglia",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
                     relevant_date="2026-04-23",
                     deadline="2026-04-24",
                     recommended_action="Archivia",
@@ -90,7 +92,8 @@ class AiReviewTest(unittest.TestCase):
                     document_name="Bolletta Eni",
                     category="Casa",
                     subcategory="Bolletta Energia",
-                    owner="Famiglia",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
                     relevant_date="",
                     deadline="",
                     recommended_action="Archivia",
@@ -103,7 +106,8 @@ class AiReviewTest(unittest.TestCase):
                     document_name="POS.docx",
                     category="Lavoro",
                     subcategory="Sicurezza",
-                    owner="Azienda/Lavoro",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
                     relevant_date="",
                     deadline="",
                     recommended_action="Da verificare",
@@ -131,7 +135,8 @@ class AiReviewTest(unittest.TestCase):
                     document_name="POS.docx",
                     category="Lavoro",
                     subcategory="Sicurezza",
-                    owner="Azienda/Lavoro",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
                     relevant_date="",
                     deadline="",
                     recommended_action="Archivia",
@@ -156,7 +161,8 @@ class AiReviewTest(unittest.TestCase):
                     document_name="POS.docx",
                     category="Lavoro",
                     subcategory="Sicurezza",
-                    owner="Azienda/Lavoro",
+                    owner="Davide",
+                    suggested_visibility="condiviso",
                     relevant_date="",
                     deadline="",
                     recommended_action="Archivia",

@@ -33,6 +33,8 @@ Cartella finale
 - **AnythingLLM + Ollama**: ricerca AI e classificazione locale senza costi API esterne quando
   la qualita del modello locale e sufficiente.
 - **Database**: stato di email, file salvati, categoria assegnata, rinomina e stato elaborazione.
+- **Data model**: proprietari iniziali Davide/Ralitza, visibilita `privato`/`condiviso` e
+  condivisioni esplicite sono descritti in `docs/data-model.md`.
 - **Config YAML**: categorie e mapping cartelle modificabili senza cambiare codice.
 - **Policy classificazione**: soglie di confidenza e knowledge base dei documenti ricorrenti
   sono descritte in `docs/classification-policy.md`.

@@ -21,12 +21,13 @@ Per ogni documento che riesci a identificare, restituisci una tabella Markdown c
 2. Categoria principale
 3. Sottocategoria proposta
 4. Proprietario probabile
-5. Data rilevante
-6. Scadenza
-7. Azione consigliata
-8. Duplicato di
-9. Confidenza
-10. Motivo sintetico
+5. Visibilita suggerita
+6. Data rilevante
+7. Scadenza
+8. Azione consigliata
+9. Duplicato di
+10. Confidenza
+11. Motivo sintetico
 
 Categorie principali ammesse:
 - Banca
@@ -45,10 +46,12 @@ Categorie principali ammesse:
 
 Proprietario probabile ammesso:
 - Davide
-- Moglie
-- Famiglia
-- Azienda/Lavoro
+- Ralitza
 - Non chiaro
+
+Visibilita suggerita ammessa:
+- privato
+- condiviso
 
 Azione consigliata ammessa:
 - Archivia
@@ -62,6 +65,8 @@ Regole:
 - Se una data non e presente, scrivi "Non presente".
 - Se una scadenza non e presente, scrivi "Non presente".
 - Se non sei sicuro del proprietario, scrivi "Non chiaro".
+- Non usare "Famiglia" come proprietario: se il documento riguarda entrambi, scegli il proprietario piu probabile e imposta visibilita "condiviso".
+- Se il documento e personale, sanitario, fiscale o sensibile e riguarda una sola persona, suggerisci visibilita "privato".
 - Se un file sembra tecnico, vuoto o residuale, usa categoria "Varie" e azione "Ignora" salvo chiara utilita.
 - Se due documenti sembrano duplicati o copie, segnala "Duplicato" in Azione consigliata e compila "Duplicato di".
 - Se un documento contiene solo metadati incompleti o testo insufficiente, usa "Da verificare".

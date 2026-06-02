@@ -13,7 +13,7 @@
           <div class="brand-mark">AP</div>
           <div>
             <h1>Archivio</h1>
-            <p>Personale & famiglia</p>
+            <p>Davide & Ralitza</p>
           </div>
         </div>
 
@@ -31,9 +31,8 @@
           <div class="owner-switch" role="group" aria-label="Filtro proprietario">
             <button class="owner-button active" data-owner="Tutti">Tutti</button>
             <button class="owner-button" data-owner="Davide">Davide</button>
-            <button class="owner-button" data-owner="Moglie">Moglie</button>
-            <button class="owner-button" data-owner="Famiglia">Famiglia</button>
-            <button class="owner-button" data-owner="Azienda/Lavoro">Lavoro</button>
+            <button class="owner-button" data-owner="Ralitza">Ralitza</button>
+            <button class="owner-button" data-owner="Non chiaro">Non chiaro</button>
           </div>
         </section>
 
@@ -116,6 +115,11 @@
                     <option value="rejected">Rifiutati</option>
                     <option value="applied">Applicati</option>
                   </select>
+                  <select id="visibilityFilter" aria-label="Filtro visibilita">
+                    <option value="Tutte">Tutte le visibilita</option>
+                    <option value="privato">Privati</option>
+                    <option value="condiviso">Condivisi</option>
+                  </select>
                 </div>
               </div>
               <div class="table-wrap">
@@ -126,6 +130,7 @@
                       <th>Categoria</th>
                       <th>Proprietario</th>
                       <th>Conf.</th>
+                      <th>Visibilita</th>
                       <th>Stato</th>
                       <th>Azione</th>
                     </tr>
@@ -184,7 +189,7 @@
 
     <template id="emptyStateTemplate">
       <tr>
-        <td colspan="6" class="empty-state">Nessun documento corrisponde ai filtri selezionati.</td>
+        <td colspan="7" class="empty-state">Nessun documento corrisponde ai filtri selezionati.</td>
       </tr>
     </template>
 

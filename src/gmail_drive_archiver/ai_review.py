@@ -13,6 +13,7 @@ class AiReviewItem:
     category: str = ""
     subcategory: str = ""
     owner: str = ""
+    suggested_visibility: str = ""
     relevant_date: str = ""
     deadline: str = ""
     recommended_action: str = ""
@@ -31,6 +32,10 @@ HEADER_ALIASES = {
     "sottocategoria": "subcategory",
     "proprietario probabile": "owner",
     "proprietario": "owner",
+    "visibilita suggerita": "suggested_visibility",
+    "visibilità suggerita": "suggested_visibility",
+    "visibilita": "suggested_visibility",
+    "visibilità": "suggested_visibility",
     "data rilevante": "relevant_date",
     "data": "relevant_date",
     "scadenza": "deadline",
@@ -62,6 +67,7 @@ def parse_ai_review_markdown(path: Path) -> list[AiReviewItem]:
                 category=values.get("category", ""),
                 subcategory=values.get("subcategory", ""),
                 owner=values.get("owner", ""),
+                suggested_visibility=values.get("suggested_visibility", ""),
                 relevant_date=values.get("relevant_date", ""),
                 deadline=values.get("deadline", ""),
                 recommended_action=values.get("recommended_action", ""),

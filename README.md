@@ -24,6 +24,8 @@ personal-archive-ai
 │   └── drive-folders.yml
 ├── database/
 ├── docs/
+│   ├── data-model.md
+│   └── database-postgres-v1.sql
 ├── src/
 ├── tests/
 └── README.md
@@ -60,6 +62,7 @@ Dettagli: `docs/architecture.md`.
 - **AnythingLLM** opzionale via profilo Docker `ai`.
 - **config/** con categorie, regole Gmail e mapping cartelle Drive.
 - **database/** per SQLite locale della CLI e note operative.
+- **docs/data-model.md** e **docs/database-postgres-v1.sql** per il futuro schema PostgreSQL/Supabase.
 - **scripts/** con wrapper eseguibile per l'archiver.
 - **CLI Python** installabile (`gmail-drive-archiver`) con:
   - OAuth Google locale;

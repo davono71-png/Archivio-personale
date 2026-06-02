@@ -61,7 +61,8 @@ Esempio:
   "keywords": ["bolletta", "energia", "scadenza", "totale da pagare"],
   "category": "Casa",
   "subcategory": "Utenze",
-  "owner": "Famiglia",
+  "owner": "Davide",
+  "visibility": "condiviso",
   "default_action": "Archivia"
 }
 ```

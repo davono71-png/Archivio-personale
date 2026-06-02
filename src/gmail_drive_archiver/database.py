@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS ai_review_items (
     category TEXT,
     subcategory TEXT,
     owner TEXT,
+    suggested_visibility TEXT,
     relevant_date TEXT,
     deadline TEXT,
     recommended_action TEXT,
@@ -97,6 +98,7 @@ class ProcessedStore:
             "drive_file_id": "ALTER TABLE ai_review_items ADD COLUMN drive_file_id TEXT",
             "target_folder_id": "ALTER TABLE ai_review_items ADD COLUMN target_folder_id TEXT",
             "applied_at": "ALTER TABLE ai_review_items ADD COLUMN applied_at TEXT",
+            "suggested_visibility": "ALTER TABLE ai_review_items ADD COLUMN suggested_visibility TEXT",
         }
         for column, statement in migrations.items():
             if column not in columns:
@@ -210,6 +212,7 @@ class ProcessedStore:
         category: str,
         subcategory: str,
         owner: str,
+        suggested_visibility: str,
         relevant_date: str,
         deadline: str,
         recommended_action: str,
@@ -226,6 +229,7 @@ class ProcessedStore:
                     category,
                     subcategory,
                     owner,
+                    suggested_visibility,
                     relevant_date,
                     deadline,
                     recommended_action,
@@ -235,13 +239,14 @@ class ProcessedStore:
                     source_path,
                     review_status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
                 """,
                 (
                     document_name,
                     category,
                     subcategory,
                     owner,
+                    suggested_visibility,
                     relevant_date,
                     deadline,
                     recommended_action,
@@ -304,6 +309,7 @@ class ProcessedStore:
                     category,
                     subcategory,
                     owner,
+                    suggested_visibility,
                     recommended_action,
                     confidence,
                     reason,
@@ -325,6 +331,7 @@ class ProcessedStore:
             "category",
             "subcategory",
             "owner",
+            "suggested_visibility",
             "recommended_action",
             "confidence",
             "reason",
@@ -384,6 +391,7 @@ class ProcessedStore:
                     category,
                     subcategory,
                     owner,
+                    suggested_visibility,
                     recommended_action,
                     confidence,
                     reason,
@@ -402,6 +410,7 @@ class ProcessedStore:
             "category",
             "subcategory",
             "owner",
+            "suggested_visibility",
             "recommended_action",
             "confidence",
             "reason",

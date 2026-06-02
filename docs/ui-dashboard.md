@@ -8,7 +8,8 @@ La dashboard e il futuro punto di controllo per l'utente.
 - controllare documenti da classificare;
 - approvare o rifiutare classificazioni AI;
 - vedere scadenze;
-- distinguere proprietari: Davide, Moglie, Famiglia, Azienda/Lavoro;
+- distinguere proprietari: Davide, Ralitza, Non chiaro;
+- distinguere visibilita: privato, condiviso;
 - avviare azioni controllate come OCR, import AnythingLLM e spostamento Drive.
 
 ## Stato attuale
