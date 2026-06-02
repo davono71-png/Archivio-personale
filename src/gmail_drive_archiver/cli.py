@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from .ai_review import AiReviewItem, parse_ai_review_markdown, write_ai_review
+from .ai_review import AiReviewItem, normalize_ai_review_item, parse_ai_review_markdown, write_ai_review
 from .anythingllm_export import AnythingLlmExportResult, export_anythingllm_package
 from .config import ConfigError, load_config, load_split_config
 from .database import ProcessedStore
@@ -324,6 +324,13 @@ def build_parser() -> argparse.ArgumentParser:
     review_summary.add_argument("--limit", type=int, default=20, help="numero massimo di righe recenti da mostrare")
     review_summary.set_defaults(func=run_review_summary)
 
+    normalize_reviews = subcommands.add_parser(
+        "normalize-ai-reviews",
+        help="normalizza categorie/proprietari/visibilita delle review AI gia importate",
+    )
+    normalize_reviews.add_argument("--db", type=Path, default=DEFAULT_DB, help=f"database SQLite (default: {DEFAULT_DB})")
+    normalize_reviews.set_defaults(func=run_normalize_ai_reviews)
+
     set_review_status = subcommands.add_parser(
         "set-review-status",
         help="approva o rifiuta righe AI importate, senza spostare file",
@@ -631,6 +638,48 @@ def run_review_summary(args: argparse.Namespace) -> int:
         return 2
 
     _print_review_summary(category_counts, action_counts, latest_items)
+    return 0
+
+
+def run_normalize_ai_reviews(args: argparse.Namespace) -> int:
+    try:
+        with ProcessedStore(args.db) as store:
+            items = store.ai_review_items(limit=100000)
+            updated = 0
+            for item in items:
+                normalized = normalize_ai_review_item(
+                    AiReviewItem(
+                        document_name=item.get("document_name", ""),
+                        category=item.get("category", ""),
+                        subcategory=item.get("subcategory", ""),
+                        owner=item.get("owner", ""),
+                        suggested_visibility=item.get("suggested_visibility", ""),
+                        relevant_date=item.get("relevant_date", ""),
+                        deadline=item.get("deadline", ""),
+                        recommended_action=item.get("recommended_action", ""),
+                        duplicate_of=item.get("duplicate_of", ""),
+                        confidence=item.get("confidence", ""),
+                        reason=item.get("reason", ""),
+                    )
+                )
+                if (
+                    normalized.category != item.get("category", "")
+                    or normalized.owner != item.get("owner", "")
+                    or normalized.suggested_visibility != item.get("suggested_visibility", "")
+                ):
+                    store.update_ai_review_normalized_fields(
+                        int(item["id"]),
+                        normalized.category,
+                        normalized.owner,
+                        normalized.suggested_visibility,
+                    )
+                    updated += 1
+    except OSError as exc:
+        print(f"Errore normalizzazione review AI: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"Review analizzate: {len(items)}")
+    print(f"Review aggiornate: {updated}")
     return 0
 
 

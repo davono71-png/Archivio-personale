@@ -66,6 +66,11 @@ Regole:
 - Se una scadenza non e presente, scrivi "Non presente".
 - Se non sei sicuro del proprietario, scrivi "Non chiaro".
 - Non usare "Famiglia" come proprietario: se il documento riguarda entrambi, scegli il proprietario piu probabile e imposta visibilita "condiviso".
+- Se trovi nomi diversi da Davide o Ralitza, tratta il proprietario come Davide salvo evidenza esplicita contraria.
+- Bollette energia/gas/acqua/utenze vanno in categoria "Casa", non "Banca".
+- Estratti conto, bonifici, saldi, giacenze e conti correnti vanno in categoria "Banca".
+- Documenti fiscali, Agenzia Entrate, IVA, dichiarazioni e fatture vanno in categoria "Fisco".
+- Non creare nuove categorie fuori dall'elenco ammesso: se non rientra chiaramente, usa "Varie".
 - Se il documento e personale, sanitario, fiscale o sensibile e riguarda una sola persona, suggerisci visibilita "privato".
 - Se un file sembra tecnico, vuoto o residuale, usa categoria "Varie" e azione "Ignora" salvo chiara utilita.
 - Se due documenti sembrano duplicati o copie, segnala "Duplicato" in Azione consigliata e compila "Duplicato di".

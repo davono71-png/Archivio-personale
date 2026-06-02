@@ -32,6 +32,25 @@ Regola operativa:
 - `< 70`: documento poco leggibile, incompleto, OCR incerto, file tecnico, o contenuto fuori
   dai pattern noti.
 
+## Regole categoria e proprietario
+
+Le categorie sono chiuse: il modello non deve crearne di nuove. Categorie fuori lista vengono
+normalizzate a `Varie`.
+
+Regole specifiche:
+
+- bollette energia/gas/acqua/utenze -> `Casa`;
+- estratti conto, bonifici, saldi, giacenze, conti correnti -> `Banca`;
+- documenti fiscali, Agenzia Entrate, IVA, dichiarazioni, fatture -> `Fisco`.
+
+Proprietari ammessi:
+
+- Davide;
+- Ralitza;
+- Non chiaro.
+
+Nomi diversi da Ralitza vengono trattati come Davide, salvo futura estensione del modello utenti.
+
 ## Knowledge base dei documenti ricorrenti
 
 Molti documenti si ripetono per mittente, layout e parole chiave:

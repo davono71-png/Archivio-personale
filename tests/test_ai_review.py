@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gmail_drive_archiver.ai_review import parse_ai_review_markdown, write_ai_review
+from gmail_drive_archiver.ai_review import AiReviewItem, normalize_ai_review_item, parse_ai_review_markdown, write_ai_review
 from gmail_drive_archiver.database import ProcessedStore
 
 
@@ -53,6 +53,56 @@ class AiReviewTest(unittest.TestCase):
         self.assertEqual(payload[0]["subcategory"], "Fideiussione Affitto")
         self.assertEqual(payload[0]["suggested_visibility"], "condiviso")
         self.assertIn("Garanzia Onofri", csv_content)
+
+    def test_normalizes_ai_categories_and_owners(self) -> None:
+        cases = [
+            (
+                AiReviewItem(
+                    document_name="524508270106_2024_s.pdf",
+                    category="Banca",
+                    subcategory="Bolletta gas",
+                    owner="Tommaso",
+                    reason="Bolletta gas intestata a Davide Onofri",
+                ),
+                ("Casa", "Davide", "privato"),
+            ),
+            (
+                AiReviewItem(
+                    document_name="dichiarazione_iva.pdf",
+                    category="Banca",
+                    subcategory="Documento fiscale",
+                    owner="Ester",
+                    reason="Documento Agenzia Entrate con IVA",
+                ),
+                ("Fisco", "Davide", "privato"),
+            ),
+            (
+                AiReviewItem(
+                    document_name="appunti_game_design.pdf",
+                    category="Game design",
+                    owner="Non chiaro",
+                    suggested_visibility="condiviso",
+                    reason="Appunti didattici",
+                ),
+                ("Varie", "Non chiaro", "condiviso"),
+            ),
+            (
+                AiReviewItem(
+                    document_name="estratto_conto.pdf",
+                    category="Casa",
+                    owner="Ralitza",
+                    reason="Estratto conto e saldo",
+                ),
+                ("Banca", "Ralitza", "privato"),
+            ),
+        ]
+
+        for item, expected in cases:
+            normalized = normalize_ai_review_item(item)
+            self.assertEqual(
+                (normalized.category, normalized.owner, normalized.suggested_visibility),
+                expected,
+            )
 
     def test_records_ai_review_items_in_database(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -179,6 +229,47 @@ class AiReviewTest(unittest.TestCase):
         self.assertEqual(updated, 1)
         self.assertEqual(statuses["approved"], 1)
         self.assertEqual(approved[0]["suggested_visibility"], "condiviso")
+
+    def test_updates_normalized_ai_review_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "state.sqlite3"
+            with ProcessedStore(db_path) as store:
+                store.record_ai_review_item(
+                    document_name="bolletta gas.pdf",
+                    category="Banca",
+                    subcategory="Bolletta gas",
+                    owner="Tommaso",
+                    suggested_visibility="",
+                    relevant_date="",
+                    deadline="",
+                    recommended_action="Archivia",
+                    duplicate_of="",
+                    confidence="99",
+                    reason="Bolletta gas",
+                    source_path="review.md",
+                )
+                item = store.ai_review_items(limit=1)[0]
+                normalized = normalize_ai_review_item(
+                    AiReviewItem(
+                        document_name=item["document_name"],
+                        category=item["category"],
+                        subcategory=item["subcategory"],
+                        owner=item["owner"],
+                        suggested_visibility=item["suggested_visibility"],
+                        reason=item["reason"],
+                    )
+                )
+                store.update_ai_review_normalized_fields(
+                    int(item["id"]),
+                    normalized.category,
+                    normalized.owner,
+                    normalized.suggested_visibility,
+                )
+                updated = store.ai_review_items(limit=1)[0]
+
+        self.assertEqual(updated["category"], "Casa")
+        self.assertEqual(updated["owner"], "Davide")
+        self.assertEqual(updated["suggested_visibility"], "privato")
 
     def test_marks_ai_review_as_applied(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

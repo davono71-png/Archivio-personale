@@ -7,6 +7,23 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
+ALLOWED_CATEGORIES = {
+    "Banca",
+    "Salute",
+    "Assicurazioni",
+    "Casa",
+    "Auto",
+    "Fisco",
+    "Garanzie",
+    "Sport",
+    "Tecnologia",
+    "Viaggi",
+    "Lavoro",
+    "Alimentazione",
+    "Varie",
+}
+
+
 @dataclass(frozen=True)
 class AiReviewItem:
     document_name: str
@@ -62,21 +79,52 @@ def parse_ai_review_markdown(path: Path) -> list[AiReviewItem]:
         if not values.get("document_name"):
             continue
         items.append(
-            AiReviewItem(
-                document_name=values.get("document_name", ""),
-                category=values.get("category", ""),
-                subcategory=values.get("subcategory", ""),
-                owner=values.get("owner", ""),
-                suggested_visibility=values.get("suggested_visibility", ""),
-                relevant_date=values.get("relevant_date", ""),
-                deadline=values.get("deadline", ""),
-                recommended_action=values.get("recommended_action", ""),
-                duplicate_of=values.get("duplicate_of", ""),
-                confidence=values.get("confidence", ""),
-                reason=values.get("reason", ""),
+            normalize_ai_review_item(
+                AiReviewItem(
+                    document_name=values.get("document_name", ""),
+                    category=values.get("category", ""),
+                    subcategory=values.get("subcategory", ""),
+                    owner=values.get("owner", ""),
+                    suggested_visibility=values.get("suggested_visibility", ""),
+                    relevant_date=values.get("relevant_date", ""),
+                    deadline=values.get("deadline", ""),
+                    recommended_action=values.get("recommended_action", ""),
+                    duplicate_of=values.get("duplicate_of", ""),
+                    confidence=values.get("confidence", ""),
+                    reason=values.get("reason", ""),
+                )
             )
         )
     return items
+
+
+def normalize_ai_review_item(item: AiReviewItem) -> AiReviewItem:
+    combined = " ".join(
+        [
+            item.document_name,
+            item.category,
+            item.subcategory,
+            item.recommended_action,
+            item.reason,
+        ]
+    )
+    category = _normalize_category(item.category, combined)
+    owner = _normalize_owner(item.owner)
+    visibility = _normalize_visibility(item.suggested_visibility)
+
+    return AiReviewItem(
+        document_name=item.document_name,
+        category=category,
+        subcategory=item.subcategory,
+        owner=owner,
+        suggested_visibility=visibility,
+        relevant_date=item.relevant_date,
+        deadline=item.deadline,
+        recommended_action=item.recommended_action,
+        duplicate_of=item.duplicate_of,
+        confidence=item.confidence,
+        reason=item.reason,
+    )
 
 
 def write_ai_review(items: list[AiReviewItem], path: Path, output_format: str) -> None:
@@ -138,3 +186,55 @@ def _clean_cell(value: str) -> str:
     value = re.sub(r"<br\s*/?>", " ", value, flags=re.IGNORECASE)
     value = re.sub(r"[*`]", "", value)
     return re.sub(r"\s+", " ", value).strip()
+
+
+def _normalize_category(category: str, combined_text: str) -> str:
+    text = _normalized_text(combined_text)
+
+    # Specific rules override generic payment/bank wording.
+    if _contains_any(text, ("bolletta", "energia", "gas", "acqua", "utenza", "utenze", "idrico", "eni", "enel")):
+        return "Casa"
+    if _contains_any(text, ("agenzia entrate", "agenzia delle entrate", "iva", "fiscale", "fisco", "dichiarazione", "fattura")):
+        return "Fisco"
+    if _contains_any(text, ("estratto conto", "conto corrente", "bonifico", "saldo", "giacenza", "banco bpm", "banca", "hype")):
+        return "Banca"
+
+    cleaned = _category_case(category)
+    return cleaned if cleaned in ALLOWED_CATEGORIES else "Varie"
+
+
+def _normalize_owner(owner: str) -> str:
+    normalized = _normalized_text(owner)
+    if normalized == "ralitza":
+        return "Ralitza"
+    if normalized in {"", "non chiaro", "non definito", "n d", "nd"}:
+        return "Non chiaro"
+    return "Davide"
+
+
+def _normalize_visibility(visibility: str) -> str:
+    normalized = _normalized_text(visibility)
+    return "condiviso" if normalized == "condiviso" else "privato"
+
+
+def _category_case(category: str) -> str:
+    normalized = _normalized_text(category)
+    for allowed in ALLOWED_CATEGORIES:
+        if _normalized_text(allowed) == normalized:
+            return allowed
+    return category.strip()
+
+
+def _contains_any(text: str, keywords: tuple[str, ...]) -> bool:
+    return any(_keyword_present(text, keyword) for keyword in keywords)
+
+
+def _keyword_present(text: str, keyword: str) -> bool:
+    normalized_keyword = _normalized_text(keyword)
+    return re.search(rf"(?<!\S){re.escape(normalized_keyword)}(?!\S)", text) is not None
+
+
+def _normalized_text(value: str) -> str:
+    normalized = value.casefold()
+    normalized = re.sub(r"[^0-9a-zà-öø-ÿ]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()

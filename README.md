@@ -577,6 +577,14 @@ gmail-drive-archiver review-summary \
   --limit 20
 ```
 
+Per normalizzare review gia importate secondo le regole correnti
+`Casa/Banca/Fisco`, categorie chiuse e proprietari Davide/Ralitza/Non chiaro:
+
+```bash
+gmail-drive-archiver normalize-ai-reviews \
+  --db database/personal-archive.sqlite3
+```
+
 Per approvare un gruppo di review senza spostare ancora nulla:
 
 ```bash

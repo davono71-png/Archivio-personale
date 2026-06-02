@@ -314,6 +314,26 @@ class ProcessedStore:
             )
         return cursor.rowcount
 
+    def update_ai_review_normalized_fields(
+        self,
+        review_id: int,
+        category: str,
+        owner: str,
+        suggested_visibility: str,
+    ) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                UPDATE ai_review_items
+                SET
+                    category = ?,
+                    owner = ?,
+                    suggested_visibility = ?
+                WHERE id = ?
+                """,
+                (category, owner, suggested_visibility, review_id),
+            )
+
     def ai_review_status_counts(self) -> list[tuple[str, int]]:
         with closing(
             self._connection.execute(
