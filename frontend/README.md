@@ -53,3 +53,7 @@ Endpoint disponibili:
 - `POST /api/reviews/status`
 
 Se l'API non risponde, la dashboard usa dati mock.
+
+Quando `database/inventory-da-classificare.csv` e disponibile, la API prova ad associare ogni
+review al file Drive originale. In quel caso il nome documento e cliccabile e apre Google Drive
+in una nuova scheda per consultazione o modifica.

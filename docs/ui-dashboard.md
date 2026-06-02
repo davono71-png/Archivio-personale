@@ -59,4 +59,13 @@ La versione attuale usa una API leggera in Python standard library:
 http://HOST:8090/api
 ```
 
+La API legge:
+
+- `DASHBOARD_DB`, default `database/personal-archive.sqlite3`;
+- `DASHBOARD_INVENTORY`, default `database/inventory-da-classificare.csv`.
+
+Se l'inventario e disponibile, la UI associa le review ai link Drive e il nome documento diventa
+cliccabile. Il link apre Google Drive in una nuova scheda, dove l'utente puo visionare o
+modificare il file secondo i propri permessi Google.
+
 Se l'API non risponde, la UI usa dati dimostrativi.

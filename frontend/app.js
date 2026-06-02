@@ -192,9 +192,12 @@ function renderDocuments() {
   docs.forEach((doc) => {
     const row = document.createElement("tr");
     row.dataset.id = doc.id;
+    const titleMarkup = doc.driveLink && doc.driveLink !== "#"
+      ? `<a class="doc-link" href="${escapeHtml(doc.driveLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(doc.title)}</a>`
+      : escapeHtml(doc.title);
     row.innerHTML = `
       <td>
-        <div class="doc-title">${escapeHtml(doc.title)}</div>
+        <div class="doc-title">${titleMarkup}</div>
         <div class="doc-subtitle">${escapeHtml(doc.subcategory)} · ${escapeHtml(doc.source)}</div>
       </td>
       <td>${escapeHtml(doc.category)}</td>
@@ -210,7 +213,7 @@ function renderDocuments() {
       </td>
     `;
     row.addEventListener("click", (event) => {
-      if (event.target instanceof HTMLButtonElement) return;
+      if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLAnchorElement) return;
       state.selectedId = doc.id;
       renderDetail();
     });
@@ -288,6 +291,11 @@ function renderDetail() {
     <div><strong>Visibilita:</strong> ${escapeHtml(doc.visibility || "privato")}</div>
     <div><strong>Azione:</strong> ${escapeHtml(doc.action)}</div>
     <div><strong>Confidenza:</strong> ${doc.confidence}%</div>
+    ${
+      doc.driveLink && doc.driveLink !== "#"
+        ? `<a class="open-file-link" href="${escapeHtml(doc.driveLink)}" target="_blank" rel="noopener noreferrer">Apri/modifica file in Drive</a>`
+        : "<div><strong>File:</strong> link Drive non ancora associato</div>"
+    }
   `;
 }
 
@@ -424,7 +432,7 @@ function normalizeApiReview(item) {
     action: item.action || "",
     deadline: item.deadline || "",
     source: item.source || "SQLite review AI",
-    driveLink: item.driveLink || "#",
+    driveLink: item.driveLink || (item.driveFileId ? `https://drive.google.com/file/d/${item.driveFileId}/view` : "#"),
     reason: item.reason || "",
   };
 }

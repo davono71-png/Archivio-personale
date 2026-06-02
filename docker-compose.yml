@@ -106,6 +106,9 @@ services:
     restart: unless-stopped
     ports:
       - "${DASHBOARD_API_PORT:-8090}:8090"
+    environment:
+      DASHBOARD_DB: ${DASHBOARD_DB:-database/personal-archive.sqlite3}
+      DASHBOARD_INVENTORY: ${DASHBOARD_INVENTORY:-database/inventory-da-classificare.csv}
     volumes:
       - ./database:/workspace/database
 

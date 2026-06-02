@@ -97,6 +97,8 @@ OLLAMA_BASE_PATH=http://ollama:11434
 OLLAMA_MODEL_PREF=llama3.2:3b
 DASHBOARD_PORT=8080
 DASHBOARD_API_PORT=8090
+DASHBOARD_DB=database/personal-archive.sqlite3
+DASHBOARD_INVENTORY=database/inventory-da-classificare.csv
 TZ=Europe/Rome
 ```
 
