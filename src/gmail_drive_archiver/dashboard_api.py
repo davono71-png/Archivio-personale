@@ -390,7 +390,7 @@ def _scan_drive(
         "download_counts": _count_statuses([result.status for result in download_results]),
         "extract_counts": _count_statuses([result.status for result in extraction_results]),
         "category_counts": analysis.category_counts,
-        "unclassified_count": analysis.unclassified_count,
+        "unclassified_count": len(analysis.unclassified_files),
     }
 
 

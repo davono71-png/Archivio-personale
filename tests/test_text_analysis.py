@@ -28,6 +28,7 @@ class TextAnalysisTest(unittest.TestCase):
         self.assertEqual(analysis.category_counts["Banca"], 1)
         self.assertEqual(analysis.category_counts["Alimentazione"], 1)
         self.assertEqual(len(analysis.unclassified_files), 1)
+        self.assertFalse(hasattr(analysis, "unclassified_count"))
         self.assertIn("bonifico.txt", text_analysis_to_json(analysis))
 
     def test_uses_filename_when_content_has_no_category_keywords(self) -> None:
