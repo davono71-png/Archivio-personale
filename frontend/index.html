@@ -36,9 +36,9 @@
           </div>
         </section>
 
-        <section class="deadline-card">
-          <p class="section-label">Scadenze percepite</p>
-          <div id="deadlineList" class="deadline-list"></div>
+        <section class="moved-card">
+          <p class="section-label">Ultimi file spostati</p>
+          <div id="movedList" class="moved-list"></div>
         </section>
 
         <section class="system-card">
@@ -66,7 +66,7 @@
           </div>
           <div class="topbar-actions">
             <button class="ghost-button" id="refreshButton">Aggiorna vista</button>
-            <button class="primary-button">Nuova scansione</button>
+            <button class="primary-button" id="scanDriveButton">Nuova scansione Drive</button>
           </div>
         </header>
 
@@ -119,8 +119,8 @@
                     <option value="Tutte">Tutte le categorie</option>
                   </select>
                   <select id="statusFilter" aria-label="Filtro stato">
-                    <option value="Tutti">Tutti gli stati</option>
                     <option value="pending">Pending</option>
+                    <option value="Tutti">Tutti gli stati</option>
                     <option value="approved">Approvati</option>
                     <option value="rejected">Rifiutati</option>
                     <option value="applied">Applicati</option>
@@ -148,16 +148,6 @@
                   <tbody id="documentsTable"></tbody>
                 </table>
               </div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="section-label">Pipeline</p>
-                  <h3>Prossimi passi</h3>
-                </div>
-              </div>
-              <div class="timeline" id="pipelineTimeline"></div>
             </section>
           </div>
 

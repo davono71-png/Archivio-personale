@@ -21,7 +21,7 @@ personal-archive-ai
 ├── config/
 │   ├── categories.yml
 │   ├── gmail-rules.yml
-│   └── drive-folders.yml
+│   └── drive-folders.example.yml
 ├── database/
 ├── docs/
 │   ├── data-model.md
@@ -167,6 +167,15 @@ Su VPS apri anche la porta API:
 ufw allow 8090/tcp
 ```
 
+Il bottone **Nuova scansione Drive** lancia dalla UI:
+
+- inventario della cartella `Da Classificare`;
+- download nuovi file;
+- estrazione testo;
+- analisi locale.
+
+La classificazione AI e l'import review restano step separati.
+
 ### Uso con Ollama locale
 
 Per evitare costi API Gemini/OpenAI puoi usare Ollama nel profilo Docker `ai`.
@@ -283,6 +292,13 @@ gmail:
 ```
 
 ### `config/drive-folders.yml`
+
+Gli ID reali delle cartelle Drive sono locali e non versionati. Crea il file partendo dal
+template:
+
+```bash
+cp config/drive-folders.example.yml config/drive-folders.yml
+```
 
 Mapping cartelle Drive e regole Drive API:
 

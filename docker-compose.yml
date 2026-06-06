@@ -110,6 +110,7 @@ services:
       DASHBOARD_DB: ${DASHBOARD_DB:-database/personal-archive.sqlite3}
       DASHBOARD_INVENTORY: ${DASHBOARD_INVENTORY:-database/inventory-da-classificare.csv}
       DASHBOARD_DRIVE_CONFIG: ${DASHBOARD_DRIVE_CONFIG:-config/drive-folders.yml}
+      DASHBOARD_CATEGORIES: ${DASHBOARD_CATEGORIES:-config/categories.yml}
       DASHBOARD_CREDENTIALS: ${DASHBOARD_CREDENTIALS:-config/credentials.json}
       DASHBOARD_TOKEN: ${DASHBOARD_TOKEN:-database/token.json}
       ANYTHINGLLM_API_BASE: ${ANYTHINGLLM_API_BASE:-http://anythingllm:3001}

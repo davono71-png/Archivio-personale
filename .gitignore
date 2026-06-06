@@ -12,6 +12,7 @@ build/
 token.json
 credentials.json
 config/credentials.json
+config/drive-folders.yml
 database/*.sqlite3
 database/*.csv
 database/*.json

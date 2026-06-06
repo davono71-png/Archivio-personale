@@ -81,6 +81,8 @@ l'inventario CSV e, quando presente, l'ID Drive incorporato nel nome esportato p
 
 Azioni operative disponibili:
 
+- `Nuova scansione Drive`: aggiorna inventario, scarica nuovi file, estrae testo e aggiorna
+  l'analisi locale;
 - modifica categoria/proprietario/visibilita dalla riga o dal dettaglio;
 - `Approva e sposta`: approva la review e tenta lo spostamento Drive nella cartella categoria;
 - `Rifiuta`: marca la review come rejected;

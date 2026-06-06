@@ -12,14 +12,19 @@ from urllib.parse import parse_qs, urlparse
 
 from .config import load_split_config
 from .database import ProcessedStore
+from .drive import DriveInventory
+from .drive_download import download_inventory_files, write_download_report
 from .google_auth import authenticate, build_google_service
 from .inventory_analysis import InventoryItem, load_inventory_csv
 from .review_moves import apply_review_move, build_review_moves
+from .text_analysis import analyze_text_directory
+from .text_extraction import extract_inventory_text, write_extraction_report
 
 
 DEFAULT_DB = Path("database") / "personal-archive.sqlite3"
 DEFAULT_INVENTORY = Path("database") / "inventory-da-classificare.csv"
 DEFAULT_DRIVE_CONFIG = Path("config") / "drive-folders.yml"
+DEFAULT_CATEGORIES = Path("config") / "categories.yml"
 DEFAULT_CREDENTIALS = Path("config") / "credentials.json"
 DEFAULT_TOKEN = Path("database") / "token.json"
 
@@ -36,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="CSV inventory per associare review ai link Drive",
     )
     parser.add_argument("--drive-config", type=Path, default=Path(os.getenv("DASHBOARD_DRIVE_CONFIG", str(DEFAULT_DRIVE_CONFIG))))
+    parser.add_argument("--categories", type=Path, default=Path(os.getenv("DASHBOARD_CATEGORIES", str(DEFAULT_CATEGORIES))))
     parser.add_argument("--credentials", type=Path, default=Path(os.getenv("DASHBOARD_CREDENTIALS", str(DEFAULT_CREDENTIALS))))
     parser.add_argument("--token", type=Path, default=Path(os.getenv("DASHBOARD_TOKEN", str(DEFAULT_TOKEN))))
     parser.add_argument("--anythingllm-base-url", default=os.getenv("ANYTHINGLLM_API_BASE", "http://anythingllm:3001"))
@@ -50,6 +56,7 @@ def run_server(
     db_path: Path,
     inventory_path: Path,
     drive_config_path: Path,
+    categories_path: Path,
     credentials_path: Path,
     token_path: Path,
     anythingllm_base_url: str,
@@ -60,6 +67,7 @@ def run_server(
         db_path,
         inventory_path,
         drive_config_path,
+        categories_path,
         credentials_path,
         token_path,
         anythingllm_base_url,
@@ -75,6 +83,7 @@ def _handler_factory(
     db_path: Path,
     inventory_path: Path,
     drive_config_path: Path,
+    categories_path: Path,
     credentials_path: Path,
     token_path: Path,
     anythingllm_base_url: str,
@@ -116,6 +125,17 @@ def _handler_factory(
                         "status_counts": status_counts,
                     }
                 )
+                return
+            if parsed.path == "/api/folders":
+                config = load_split_config(None, drive_config_path, None)
+                folders = {
+                    category: {
+                        "id": folder_id,
+                        "url": _drive_folder_link(folder_id),
+                    }
+                    for category, folder_id in config.drive_settings.category_folders.items()
+                }
+                self._send_json({"folders": folders})
                 return
             self._send_json({"error": "not_found"}, status=404)
 
@@ -179,6 +199,20 @@ def _handler_factory(
                     status = 200 if result.get("ok") else 400
                     self._send_json(result, status=status)
                 except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                    self._send_json({"ok": False, "error": str(exc)}, status=400)
+                return
+            if parsed.path == "/api/scan/drive":
+                try:
+                    result = _scan_drive(
+                        inventory_path,
+                        drive_config_path,
+                        categories_path,
+                        credentials_path,
+                        token_path,
+                    )
+                    status = 200 if result.get("ok") else 400
+                    self._send_json(result, status=status)
+                except (OSError, json.JSONDecodeError) as exc:
                     self._send_json({"ok": False, "error": str(exc)}, status=400)
                 return
             self._send_json({"error": "not_found"}, status=404)
@@ -307,6 +341,85 @@ def _drive_link(file_id: str) -> str:
     return f"https://drive.google.com/file/d/{file_id}/view"
 
 
+def _drive_folder_link(folder_id: str) -> str:
+    if not folder_id:
+        return ""
+    return f"https://drive.google.com/drive/folders/{folder_id}"
+
+
+def _scan_drive(
+    inventory_path: Path,
+    drive_config_path: Path,
+    categories_path: Path,
+    credentials_path: Path,
+    token_path: Path,
+) -> dict[str, object]:
+    if not credentials_path.exists() or not token_path.exists():
+        return {"ok": False, "error": "missing_google_credentials"}
+
+    config = load_split_config(None, drive_config_path, categories_path)
+    folder_id = config.drive_settings.inbox_folder_id
+    if not folder_id:
+        return {"ok": False, "error": "missing_inbox_folder"}
+
+    credentials = authenticate(credentials_path, token_path)
+    drive_service = build_google_service("drive", "v3", credentials)
+    files = DriveInventory(drive_service).list_folder(folder_id, None)
+    inventory_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_inventory_csv(files, inventory_path)
+
+    inventory_items = load_inventory_csv(inventory_path)
+    downloads_dir = Path("database") / "downloads"
+    extracted_dir = Path("database") / "extracted-text"
+    download_report = Path("database") / "download-report.csv"
+    extract_report = Path("database") / "extract-text-report.csv"
+
+    download_results = download_inventory_files(drive_service, inventory_items, downloads_dir)
+    write_download_report(download_results, download_report)
+    extraction_results = extract_inventory_text(inventory_items, downloads_dir, extracted_dir)
+    write_extraction_report(extraction_results, extract_report)
+    analysis = analyze_text_directory(extracted_dir, config.categories)
+
+    return {
+        "ok": True,
+        "inventory_count": len(files),
+        "download_counts": _count_statuses([result.status for result in download_results]),
+        "extract_counts": _count_statuses([result.status for result in extraction_results]),
+        "category_counts": analysis.category_counts,
+        "unclassified_count": analysis.unclassified_count,
+    }
+
+
+def _write_inventory_csv(files: list[dict], path: Path) -> None:
+    import csv
+
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=["id", "name", "mime_type", "size", "created_time", "modified_time", "web_view_link"],
+        )
+        writer.writeheader()
+        for file in files:
+            writer.writerow(
+                {
+                    "id": file.get("id", ""),
+                    "name": file.get("name", ""),
+                    "mime_type": file.get("mimeType", ""),
+                    "size": file.get("size", ""),
+                    "created_time": file.get("createdTime", ""),
+                    "modified_time": file.get("modifiedTime", ""),
+                    "web_view_link": file.get("webViewLink", ""),
+                }
+            )
+
+
+def _count_statuses(statuses: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for status in statuses:
+        counts[status] = counts.get(status, 0) + 1
+    return counts
+
+
 def _apply_single_review_move(
     review_id: int,
     db_path: Path,
@@ -388,6 +501,7 @@ def main(argv: list[str] | None = None) -> int:
         args.db,
         args.inventory,
         args.drive_config,
+        args.categories,
         args.credentials,
         args.token,
         args.anythingllm_base_url,

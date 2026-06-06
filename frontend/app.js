@@ -105,21 +105,13 @@ const mockDocuments = [
 const state = {
   owner: "Tutti",
   category: "Tutte",
-  status: "Tutti",
+  status: "pending",
   visibility: "Tutte",
   query: "",
   selectedId: null,
   documents: [...mockDocuments],
   summary: null,
   apiConnected: false,
-  pipeline: [
-    { label: "Inventario Drive", detail: "500 file mappati", done: true },
-    { label: "Download locale", detail: "200 file scaricati", done: true },
-    { label: "Estrazione testo", detail: "42 testi leggibili", done: true },
-    { label: "Classificazione AI", detail: "Review importate in SQLite", done: true },
-    { label: "Conferma utente", detail: "Approva / rifiuta dalla UI", done: false },
-    { label: "Spostamento Drive", detail: "Solo dopo approvazione", done: false },
-  ],
 };
 
 const categoryNames = [
@@ -244,23 +236,28 @@ function renderCategories() {
 }
 
 function renderDeadlines() {
-  const list = document.getElementById("deadlineList");
-  const deadlines = state.documents.filter((doc) => doc.deadline);
+  const list = document.getElementById("movedList");
+  if (!list) return;
+  const moved = state.documents.filter((doc) => doc.status === "applied").slice(0, 8);
   list.innerHTML = "";
-  if (!deadlines.length) {
-    list.innerHTML = '<div class="deadline-item">Nessuna scadenza rilevata<span>Importa altre review AI</span></div>';
+  if (!moved.length) {
+    list.innerHTML = '<div class="moved-item">Nessun file spostato<span>Approva e sposta un documento</span></div>';
     return;
   }
-  deadlines.forEach((doc) => {
+  moved.forEach((doc) => {
     const item = document.createElement("div");
-    item.className = "deadline-item";
-    item.innerHTML = `<strong>${escapeHtml(doc.title)}</strong><span>${escapeHtml(doc.deadline)} · ${escapeHtml(doc.category)}</span>`;
+    item.className = "moved-item";
+    const link = doc.driveLink && doc.driveLink !== "#"
+      ? `<a href="${escapeHtml(doc.driveLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(doc.title)}</a>`
+      : escapeHtml(doc.title);
+    item.innerHTML = `<strong>${link}</strong><span>${escapeHtml(doc.category)} · ${escapeHtml(doc.owner)}</span>`;
     list.appendChild(item);
   });
 }
 
 function renderPipeline() {
   const timeline = document.getElementById("pipelineTimeline");
+  if (!timeline) return;
   timeline.innerHTML = "";
   state.pipeline.forEach((step) => {
     const item = document.createElement("div");
@@ -326,10 +323,11 @@ function renderDetail() {
 function render() {
   renderStats();
   renderCategoryFilter();
+  document.getElementById("statusFilter").value = state.status;
+  document.getElementById("visibilityFilter").value = state.visibility;
   renderDocuments();
   renderCategories();
   renderDeadlines();
-  renderPipeline();
   renderDetail();
 }
 
@@ -441,6 +439,10 @@ document.getElementById("clearSearch").addEventListener("click", () => {
 
 document.getElementById("refreshButton").addEventListener("click", () => {
   loadDashboardData();
+});
+
+document.getElementById("scanDriveButton").addEventListener("click", () => {
+  runDriveScan();
 });
 
 document.getElementById("aiSearchButton").addEventListener("click", () => {
@@ -559,6 +561,37 @@ async function runAiSearch() {
     resultBox.hidden = false;
     resultBox.textContent = "Errore chiamata AI.";
     status.textContent = "";
+  }
+}
+
+async function runDriveScan() {
+  if (!state.apiConnected) {
+    alert("API dashboard non disponibile.");
+    return;
+  }
+  const button = document.getElementById("scanDriveButton");
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Scansione in corso...";
+  try {
+    const response = await fetch(`${API_BASE}/scan/drive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      alert(`Scansione non riuscita: ${payload.error || "errore"}`);
+    } else {
+      alert(`Scansione completata. File inventariati: ${payload.inventory_count}`);
+    }
+    await loadDashboardData();
+  } catch (error) {
+    console.error(error);
+    alert("Errore durante la scansione Drive.");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
   }
 }
 

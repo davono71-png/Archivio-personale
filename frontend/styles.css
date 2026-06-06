@@ -440,38 +440,53 @@ tr[data-id]:hover {
   color: #94a3b8;
 }
 
-.deadline-list {
+.deadline-list,
+.moved-list {
   display: grid;
   gap: 12px;
   margin-top: 18px;
 }
 
-.deadline-item {
+.deadline-item,
+.moved-item {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 14px;
 }
 
-.deadline-item span {
+.deadline-item span,
+.moved-item span {
   color: #cbd5e1;
   display: block;
   font-size: 13px;
   margin-top: 4px;
 }
 
-.deadline-card {
+.deadline-card,
+.moved-card {
   background: var(--dark);
   border-radius: var(--radius-xl);
   color: #fff;
   padding: 16px;
 }
 
-.deadline-card .section-label {
+.deadline-card .section-label,
+.moved-card .section-label {
   color: #cbd5e1;
 }
 
-.deadline-card .deadline-list {
+.deadline-card .deadline-list,
+.moved-card .moved-list {
   margin-top: 12px;
+}
+
+.moved-item a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.moved-item a:hover {
+  text-decoration: underline;
 }
 
 .timeline {
