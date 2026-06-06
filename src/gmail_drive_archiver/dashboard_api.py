@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import traceback
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -214,6 +215,9 @@ def _handler_factory(
                     self._send_json(result, status=status)
                 except (OSError, json.JSONDecodeError) as exc:
                     self._send_json({"ok": False, "error": str(exc)}, status=400)
+                except Exception as exc:  # Keep the browser from receiving ERR_EMPTY_RESPONSE.
+                    traceback.print_exc()
+                    self._send_json({"ok": False, "error": "scan_failed", "detail": str(exc)}, status=500)
                 return
             self._send_json({"error": "not_found"}, status=404)
 
