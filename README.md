@@ -1,6 +1,6 @@
-# personal-archive-ai
+# Qavoli personal archive AI
 
-Repository per un archivio personale automatizzato basato su GitHub, Docker Compose, n8n,
+Repository per Qavoli, archivio personale automatizzato basato su GitHub, Docker Compose, n8n,
 Google Gmail/Drive e una CLI Python di supporto.
 
 L'obiettivo e partire su VPS e poter spostare lo stesso stack su mini PC con:

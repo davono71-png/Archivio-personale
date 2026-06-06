@@ -1,6 +1,6 @@
-# UI Dashboard
+# Qavoli UI Dashboard
 
-La dashboard e il futuro punto di controllo per l'utente.
+La dashboard Qavoli e il futuro punto di controllo per l'utente.
 
 ## Obiettivi
 

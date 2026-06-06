@@ -1,6 +1,6 @@
-# Dashboard UI
+# Qavoli Dashboard UI
 
-Prima dashboard statica per l'archivio personale.
+Dashboard Qavoli per l'archivio personale.
 
 Obiettivo:
 

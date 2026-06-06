@@ -157,7 +157,9 @@ function filteredDocuments() {
 function renderStats() {
   const docs = state.documents;
   const statusCounts = state.summary?.status_counts || {};
-  document.getElementById("statInbox").textContent = state.apiConnected ? String(statusCounts.pending || 0) : "500";
+  const pendingCount = state.apiConnected ? String(statusCounts.pending || 0) : "500";
+  document.getElementById("statInbox").textContent = pendingCount;
+  document.getElementById("mobilePendingCount").textContent = pendingCount;
   document.getElementById("statExtracted").textContent = state.apiConnected ? String(docs.length) : "42";
   document.getElementById("statOcr").textContent = state.apiConnected ? "—" : "158";
   document.getElementById("statReviews").textContent = state.apiConnected ? String(state.summary?.total || docs.length) : docs.length.toString();
@@ -442,6 +444,10 @@ document.getElementById("refreshButton").addEventListener("click", () => {
 });
 
 document.getElementById("scanDriveButton").addEventListener("click", () => {
+  runDriveScan();
+});
+
+document.getElementById("mobileScanButton").addEventListener("click", () => {
   runDriveScan();
 });
 

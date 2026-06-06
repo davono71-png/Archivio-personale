@@ -1,14 +1,15 @@
 :root {
-  --bg: #f6f7fb;
+  --bg: #f6fbff;
   --surface: #ffffff;
-  --surface-soft: #f1f5f9;
+  --surface-soft: #eef7fb;
   --text: #111827;
   --muted: #64748b;
   --line: #e2e8f0;
-  --dark: #0f172a;
-  --dark-soft: #1e293b;
-  --accent: #2563eb;
+  --dark: #000000;
+  --dark-soft: #101418;
+  --accent: #0b4bff;
   --accent-soft: #dbeafe;
+  --aqua: #bafffa;
   --success: #16a34a;
   --warning: #d97706;
   --danger: #dc2626;
@@ -23,7 +24,9 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at top left, rgba(186, 255, 250, 0.55), transparent 32rem),
+    var(--bg);
   color: var(--text);
 }
 
@@ -60,15 +63,24 @@ button {
 
 .brand-mark {
   align-items: center;
-  background: var(--dark);
+  background: var(--accent);
   border-radius: 18px;
   color: #fff;
   display: flex;
-  font-weight: 800;
   height: 48px;
   justify-content: center;
-  letter-spacing: -0.04em;
   width: 48px;
+}
+
+.brand-mark span,
+.mobile-logo span,
+.mobile-hero-icon span {
+  background:
+    conic-gradient(from 90deg, #fff 0 25%, transparent 25% 38%, #fff 38% 62%, transparent 62% 75%, #fff 75% 100%);
+  border-radius: 50%;
+  display: block;
+  height: 28px;
+  width: 28px;
 }
 
 .brand h1,
@@ -113,7 +125,7 @@ button {
 
 .nav-item.active,
 .owner-button.active {
-  background: var(--dark);
+  background: var(--accent);
   color: #fff;
 }
 
@@ -138,7 +150,7 @@ button {
 }
 
 .system-row strong {
-  color: var(--success);
+  color: var(--accent);
   font-size: 13px;
 }
 
@@ -159,6 +171,17 @@ button {
 .topbar h2 {
   font-size: clamp(30px, 4vw, 44px);
   letter-spacing: -0.05em;
+}
+
+.topbar-subtitle {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.mobile-appbar,
+.mobile-hero-card,
+.bottom-nav {
+  display: none;
 }
 
 .topbar-actions,
@@ -562,7 +585,7 @@ tr[data-id]:hover {
 }
 
 .open-file-link {
-  background: var(--dark);
+  background: var(--accent);
   border-radius: 14px;
   color: #fff;
   display: block;
@@ -614,19 +637,108 @@ tr[data-id]:hover {
 }
 
 @media (max-width: 720px) {
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(186, 255, 250, 0.7), transparent 18rem),
+      #f8fdff;
+  }
+
   .sidebar {
-    gap: 18px;
-    padding: 18px;
+    display: none;
   }
 
   .main {
-    padding: 16px;
+    padding: 18px 16px 96px;
+  }
+
+  .mobile-appbar {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+
+  .icon-button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 14px;
+    color: var(--dark);
+    display: flex;
+    font-size: 26px;
+    height: 42px;
+    justify-content: center;
+    width: 42px;
+  }
+
+  .mobile-logo {
+    align-items: center;
+    background: var(--accent);
+    border-radius: 16px;
+    display: flex;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+  }
+
+  .mobile-logo span {
+    height: 26px;
+    width: 26px;
   }
 
   .topbar,
   .panel-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar {
+    margin-bottom: 18px;
+  }
+
+  .topbar h2 {
+    font-size: 24px;
+    letter-spacing: -0.04em;
+  }
+
+  .topbar-actions {
+    display: none;
+  }
+
+  .mobile-hero-card {
+    align-items: center;
+    background: linear-gradient(135deg, var(--aqua), #35b8b3);
+    border-radius: 20px;
+    box-shadow: 0 18px 35px rgba(53, 184, 179, 0.28);
+    color: #fff;
+    display: flex;
+    gap: 16px;
+    margin: 18px 0;
+    padding: 18px;
+  }
+
+  .mobile-hero-icon {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.24);
+    border-radius: 16px;
+    display: flex;
+    height: 54px;
+    justify-content: center;
+    width: 54px;
+  }
+
+  .mobile-hero-card strong {
+    display: block;
+    font-size: 17px;
+  }
+
+  .mobile-hero-card span {
+    font-size: 14px;
+  }
+
+  .mobile-hero-arrow {
+    font-size: 34px !important;
+    margin-left: auto;
   }
 
   .topbar-actions,
@@ -648,7 +760,18 @@ tr[data-id]:hover {
 
   .stats-grid,
   .category-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-card {
+    border: 0;
+    border-radius: 18px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+    min-height: 132px;
+  }
+
+  .stat-card strong {
+    font-size: 30px;
   }
 
   .panel {
@@ -658,5 +781,54 @@ tr[data-id]:hover {
 
   table {
     min-width: 720px;
+  }
+
+  .bottom-nav {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid var(--line);
+    bottom: 0;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.08);
+    display: flex;
+    height: 74px;
+    justify-content: space-around;
+    left: 0;
+    position: fixed;
+    right: 0;
+    z-index: 20;
+  }
+
+  .bottom-nav-item {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: #64748b;
+    display: grid;
+    font-size: 22px;
+    gap: 2px;
+    justify-items: center;
+  }
+
+  .bottom-nav-item span {
+    font-size: 11px;
+  }
+
+  .bottom-nav-item.active {
+    color: #35b8b3;
+  }
+
+  .bottom-nav-fab {
+    align-items: center;
+    background: linear-gradient(135deg, var(--aqua), #35b8b3);
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 12px 30px rgba(53, 184, 179, 0.35);
+    color: #fff;
+    display: flex;
+    font-size: 34px;
+    height: 62px;
+    justify-content: center;
+    margin-top: -28px;
+    width: 62px;
   }
 }
