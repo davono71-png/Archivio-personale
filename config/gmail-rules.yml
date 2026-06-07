@@ -1,0 +1,18 @@
+gmail:
+  - name: allegati-da-archiviare
+    query: "has:attachment newer_than:365d -label:Archivio/Processato"
+    label: "Archivio/Processato"
+    mark_read: false
+    max_items: 100
+
+  - name: newsletter-vecchie
+    query: "category:promotions older_than:30d"
+    label: "Archivio/Newsletter"
+    mark_read: true
+    max_items: 100
+
+  - name: email-importanti-testo
+    query: "label:Da archiviare newer_than:2y"
+    label: "Archivio/Processato"
+    mark_read: false
+    max_items: 50

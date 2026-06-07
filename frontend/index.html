@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Qavoli</title>
+    <link rel="stylesheet" href="./styles.css?v=qavoli-20260607" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navigazione principale">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span></span></div>
+          <div>
+            <h1>Qavoli</h1>
+            <p>Davide & Ralitza</p>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" data-view="queue">Da classificare</button>
+          <button class="nav-item" data-view="ai">Revisione AI</button>
+          <button class="nav-item" data-view="deadlines">Scadenze</button>
+          <button class="nav-item" data-view="search">Ricerca</button>
+          <button class="nav-item" data-view="settings">Impostazioni</button>
+        </nav>
+
+        <section class="owner-card">
+          <p class="section-label">Archivio</p>
+          <div class="owner-switch" role="group" aria-label="Filtro proprietario">
+            <button class="owner-button active" data-owner="Tutti">Tutti</button>
+            <button class="owner-button" data-owner="Davide">Davide</button>
+            <button class="owner-button" data-owner="Ralitza">Ralitza</button>
+            <button class="owner-button" data-owner="Non chiaro">Non chiaro</button>
+          </div>
+        </section>
+
+        <section class="moved-card">
+          <p class="section-label">Ultimi file spostati</p>
+          <div id="movedList" class="moved-list"></div>
+        </section>
+
+        <section class="system-card">
+          <p class="section-label">Sistema</p>
+          <div class="system-row">
+            <span>VPS</span>
+            <strong>Online</strong>
+          </div>
+          <div class="system-row">
+            <span>AI veloce</span>
+            <strong>GPT mini</strong>
+          </div>
+          <div class="system-row">
+            <span>AI locale</span>
+            <strong>Ollama</strong>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <header class="mobile-appbar">
+          <button class="icon-button" aria-label="Menu">☰</button>
+          <div class="mobile-logo"><span></span></div>
+          <button class="icon-button" aria-label="Notifiche">⌾</button>
+        </header>
+
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Qavoli archivio intelligente</p>
+            <h2>Buongiorno, Davide</h2>
+            <p class="topbar-subtitle">Ecco cosa c'è di nuovo nel tuo archivio</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="refreshButton">Aggiorna vista</button>
+            <button class="primary-button" id="scanDriveButton">Nuova scansione Drive</button>
+          </div>
+        </header>
+
+        <section class="mobile-hero-card">
+          <div class="mobile-hero-icon"><span></span></div>
+          <div>
+            <strong>Da classificare</strong>
+            <span><span id="mobilePendingCount">0</span> documenti</span>
+          </div>
+          <span class="mobile-hero-arrow">›</span>
+        </section>
+
+        <section class="search-panel">
+          <label for="searchInput">Ricerca rapida</label>
+          <div class="search-box">
+            <input id="searchInput" type="search" placeholder="Cerca bollette 2025, garanzie, POS, Banco BPM..." />
+            <button id="clearSearch" title="Pulisci ricerca">×</button>
+          </div>
+          <div class="search-actions">
+            <button class="primary-button" id="aiSearchButton">Cerca con AI</button>
+            <span id="aiSearchStatus" class="ai-search-status"></span>
+          </div>
+          <div id="aiSearchResult" class="ai-search-result" hidden></div>
+        </section>
+
+        <section class="stats-grid" aria-label="Stato pipeline">
+          <article class="stat-card">
+            <span>Da classificare</span>
+            <strong id="statInbox">0</strong>
+            <small>Drive / inbox</small>
+          </article>
+          <article class="stat-card">
+            <span>Testo estratto</span>
+            <strong id="statExtracted">0</strong>
+            <small>Pronti per AI</small>
+          </article>
+          <article class="stat-card">
+            <span>Richiede OCR</span>
+            <strong id="statOcr">0</strong>
+            <small>PDF / immagini</small>
+          </article>
+          <article class="stat-card">
+            <span>Review importate</span>
+            <strong id="statReviews">0</strong>
+            <small>In SQLite</small>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <div class="left-column">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Revisione operativa</p>
+                  <h3>Documenti proposti dall'AI</h3>
+                </div>
+                <div class="filter-row">
+                  <select id="categoryFilter" aria-label="Filtro categoria">
+                    <option value="Tutte">Tutte le categorie</option>
+                  </select>
+                  <select id="statusFilter" aria-label="Filtro stato">
+                    <option value="pending">Pending</option>
+                    <option value="Tutti">Tutti gli stati</option>
+                    <option value="approved">Approvati</option>
+                    <option value="rejected">Rifiutati</option>
+                    <option value="applied">Applicati</option>
+                  </select>
+                  <select id="visibilityFilter" aria-label="Filtro visibilita">
+                    <option value="Tutte">Tutte le visibilita</option>
+                    <option value="privato">Privati</option>
+                    <option value="condiviso">Condivisi</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Documento</th>
+                      <th>Categoria</th>
+                      <th>Proprietario</th>
+                      <th>Conf.</th>
+                      <th>Visibilita</th>
+                      <th>Stato</th>
+                      <th>Azione</th>
+                    </tr>
+                  </thead>
+                  <tbody id="documentsTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <aside class="right-column">
+            <section class="panel detail-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Dettaglio</p>
+                  <h3 id="detailTitle">Seleziona un documento</h3>
+                </div>
+              </div>
+              <p id="detailBody">Clicca una riga per vedere motivo AI, azione consigliata e link Drive.</p>
+              <div id="detailMeta" class="detail-meta"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-label">Categorie</p>
+                  <h3>Vista archivio</h3>
+                </div>
+              </div>
+              <div class="category-grid" id="categoryGrid"></div>
+            </section>
+          </aside>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Navigazione mobile">
+        <button class="bottom-nav-item active">⌂<span>Home</span></button>
+        <button class="bottom-nav-item">⌕<span>Ricerca</span></button>
+        <button class="bottom-nav-fab" id="mobileScanButton">+</button>
+        <button class="bottom-nav-item">◴<span>Review</span></button>
+        <button class="bottom-nav-item">□<span>Archivio</span></button>
+      </nav>
+    </div>
+
+    <template id="emptyStateTemplate">
+      <tr>
+        <td colspan="7" class="empty-state">Nessun documento corrisponde ai filtri selezionati.</td>
+      </tr>
+    </template>
+
+    <script src="./app.js?v=qavoli-20260607"></script>
+  </body>
+</html>
