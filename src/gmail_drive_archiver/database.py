@@ -273,6 +273,20 @@ class ProcessedStore:
                 ),
             )
 
+    def ai_review_exists_for_document(self, document_name: str) -> bool:
+        with closing(
+            self._connection.execute(
+                """
+                SELECT 1
+                FROM ai_review_items
+                WHERE document_name = ?
+                LIMIT 1
+                """,
+                (document_name,),
+            )
+        ) as cursor:
+            return cursor.fetchone() is not None
+
     def set_ai_review_status(
         self,
         status: str,
