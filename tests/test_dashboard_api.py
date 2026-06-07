@@ -2,7 +2,9 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from gmail_drive_archiver.dashboard_api import _anythingllm_search, _apply_single_review_move, _drive_folder_link, _review_payload, _scan_drive
+from gmail_drive_archiver.dashboard_api import _anythingllm_search, _apply_single_review_move, _create_scan_reviews, _drive_folder_link, _review_payload, _scan_drive
+from gmail_drive_archiver.text_analysis import analyze_text_directory
+from gmail_drive_archiver.database import ProcessedStore
 from gmail_drive_archiver.inventory_analysis import InventoryItem
 
 
@@ -117,6 +119,37 @@ class DashboardApiTest(unittest.TestCase):
             _drive_folder_link("folder-123"),
             "https://drive.google.com/drive/folders/folder-123",
         )
+
+    def test_create_scan_reviews_from_current_inventory_texts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            text_dir = root / "extracted-text"
+            text_dir.mkdir()
+            drive_id = "1JBvwVkLknPtoONApTCaNuofn2OOIT_C6"
+            (text_dir / f"Spese_sanitarie_Ester_Onofri2025-{drive_id}.txt").write_text(
+                "spese sanitarie farmacia visita medico",
+                encoding="utf-8",
+            )
+            inventory = [
+                InventoryItem(
+                    id=drive_id,
+                    name="Spese sanitarie Ester Onofri2025.pdf",
+                    mime_type="application/pdf",
+                )
+            ]
+            analysis = analyze_text_directory(text_dir, ["Salute", "Varie"])
+            db_path = root / "state.sqlite3"
+
+            first = _create_scan_reviews(inventory, analysis, db_path)
+            second = _create_scan_reviews(inventory, analysis, db_path)
+            with ProcessedStore(db_path) as store:
+                items = store.ai_review_items(limit=10)
+
+        self.assertEqual(first, 1)
+        self.assertEqual(second, 0)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["category"], "Salute")
+        self.assertEqual(items[0]["review_status"], "pending")
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .config import load_split_config
+from .ai_review import AiReviewItem, normalize_ai_review_item
 from .database import ProcessedStore
 from .drive import DriveInventory
 from .drive_download import download_inventory_files, write_download_report
@@ -383,6 +384,7 @@ def _scan_drive(
     extraction_results = extract_inventory_text(inventory_items, downloads_dir, extracted_dir)
     write_extraction_report(extraction_results, extract_report)
     analysis = analyze_text_directory(extracted_dir, config.categories)
+    created_reviews = _create_scan_reviews(inventory_items, analysis, db_path)
 
     return {
         "ok": True,
@@ -391,7 +393,59 @@ def _scan_drive(
         "extract_counts": _count_statuses([result.status for result in extraction_results]),
         "category_counts": analysis.category_counts,
         "unclassified_count": len(analysis.unclassified_files),
+        "created_reviews": created_reviews,
     }
+
+
+def _create_scan_reviews(inventory_items: list[InventoryItem], analysis, db_path: Path) -> int:  # type: ignore[no-untyped-def]
+    inventory_by_id = {item.id: item for item in inventory_items}
+    created = 0
+    with ProcessedStore(db_path) as store:
+        for text_file in analysis.analyzed_files:
+            drive_id = _id_from_text_path(Path(text_file.path), inventory_by_id)
+            if not drive_id:
+                continue
+            item = inventory_by_id[drive_id]
+            if store.ai_review_exists_for_document(item.name):
+                continue
+            category = text_file.best_category or "Varie"
+            confidence = "75" if text_file.best_category else "50"
+            normalized = normalize_ai_review_item(
+                AiReviewItem(
+                    document_name=item.name,
+                    category=category,
+                    subcategory="Proposta locale",
+                    owner="Non chiaro",
+                    suggested_visibility="privato",
+                    recommended_action="Da verificare",
+                    confidence=confidence,
+                    reason=text_file.preview or "Review creata da scansione Drive.",
+                )
+            )
+            store.record_ai_review_item(
+                document_name=normalized.document_name,
+                category=normalized.category,
+                subcategory=normalized.subcategory,
+                owner=normalized.owner,
+                suggested_visibility=normalized.suggested_visibility,
+                relevant_date=normalized.relevant_date,
+                deadline=normalized.deadline,
+                recommended_action=normalized.recommended_action,
+                duplicate_of=normalized.duplicate_of,
+                confidence=normalized.confidence,
+                reason=normalized.reason,
+                source_path="dashboard-scan",
+            )
+            created += 1
+    return created
+
+
+def _id_from_text_path(text_path: Path, inventory_by_id: dict[str, InventoryItem]) -> str | None:
+    stem = text_path.stem
+    for drive_id in inventory_by_id:
+        if stem.endswith(f"-{drive_id}") or drive_id in stem:
+            return drive_id
+    return None
 
 
 def _write_inventory_csv(files: list[dict], path: Path) -> None:

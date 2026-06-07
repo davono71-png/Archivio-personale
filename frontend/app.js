@@ -589,7 +589,7 @@ async function runDriveScan() {
     if (!response.ok || !payload.ok) {
       alert(`Scansione non riuscita: ${payload.error || "errore"}`);
     } else {
-      alert(`Scansione completata. File inventariati: ${payload.inventory_count}`);
+      alert(`Scansione completata. File inventariati: ${payload.inventory_count}. Review create: ${payload.created_reviews || 0}`);
     }
     await loadDashboardData();
   } catch (error) {
